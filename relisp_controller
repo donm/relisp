@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+local_vars = binding
+
+begin
+  loop do
+    terminal_string = gets.strip
+    
+    code = String.new
+    until gets.strip == terminal_string 
+      code << $_
+    end
+    
+    puts (eval code, local_vars).to_s
+    puts terminal_string
+  end
+rescue => dag_yo
+  puts "Ruby error: " + dag_yo
+  puts terminal_string
+end
