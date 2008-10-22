@@ -29,48 +29,76 @@
 
 ;; relisp
 
-(defconst relisp-over-string "__relisp-over-string__")
-(defconst relisp-terminal-string "__relisp-terminal-string__")
-(defconst relisp-endofmessage-string (concat "\\(" relisp-over-string "\\|" relisp-terminal-string "\\)" 
+(defconst relisp-over-string     "__>>>>>>>>>>>>>>>>>>>>__")
+(defconst relisp-terminal-string "__xxxxxxxxxxxxxxxxxxxx__")
+(defconst relisp-endofmessage-regexp (concat "\\(" relisp-over-string "\\|" relisp-terminal-string "\\)" 
 					 "[[:space:]]*"))
-(defvar relisp-transaction-finished-p 0)
+(defvar relisp-transaction-list nil)
 
 (defun relisp-controller-alive-p nil
-  (equal (process-status relisp-controller-process) 'run))
+  (and (boundp 'relisp-controller-process) (equal (process-status relisp-controller-process) 'run)))
   
 (defun relisp-start-controller nil
+  (if (boundp 'relisp-tq)
+      (tq-close relisp-tq))
+  (setq relisp-transaction-list nil)
+  (setq relisp-transaction-number 0)
   (setq relisp-controller-process 
-	(start-process "relisp-controller" nil "/home/don/src/relisp/relisp_controller"))
+	(start-process "relisp-controller" nil "/Users/don/src/relisp/relisp_controller"))
   (setq relisp-tq 
 	(tq-create relisp-controller-process)))
 
+(defun relisp-new-transaction-number nil
+  (if (boundp 'relisp-transaction-number) 
+      (setq relisp-transaction-number (+ 1 relisp-transaction-number))
+    (setq relisp-transaction-number 1)))
+
 (defun ruby-eval (code)
+  (unless (stringp code)
+    (setq code (prin1-to-string code)))
   (unless (relisp-controller-alive-p)
     (relisp-start-controller))
-  (let ((message (concat relisp-terminal-string "\n" 
-			 relisp-over-string     "\n" 
-			 code                   "\n" 
-			 relisp-terminal-string "\n")))
+  (setq code-to-ruby (concat relisp-terminal-string "\n" 
+		     relisp-over-string     "\n" 
+		     code                   "\n" 
+		     relisp-terminal-string "\n"))
+
     (if (relisp-controller-alive-p)
 	(progn
-	  (setq relisp-transaction-number 
-		(if (boundp 'relisp-transaction-number) 
-		    (+ 1 relisp-transaction-number)
-		  1))
-	  (tq-enqueue relisp-tq message relisp-endofmessage-string relisp-transaction-number 'relisp-receiver)
-	  (while (and (relisp-controller-alive-p) 
-		      (< relisp-transaction-finished-p relisp-transaction-number))
-	    (accept-process-output))))))
-  
+	  (let ((tq-num (relisp-new-transaction-number)))
+	    (push tq-num relisp-transaction-list)
+	    (tq-enqueue relisp-tq code-to-ruby relisp-endofmessage-regexp nil 'relisp-receiver)
+	    (while (and (relisp-controller-alive-p) 
+			(member tq-num relisp-transaction-list))
+	      (accept-process-output)))
+	  (if (boundp 'relisp-ruby-return)
+	      relisp-ruby-return
+	    nil))
+      nil))
+
 (defun relisp-receiver (closure output)
+  (makunbound 'relisp-ruby-return)
   (if (string-match relisp-over-string output)
       (progn
-	(setq relisp-ruby-return (chomp (car (split-string output relisp-over-string))))
-	(ruby-eval (eval (read relisp-ruby-return))))
-    (setq relisp-ruby-return (chomp (car (split-string output relisp-terminal-string)))))
-  (setq relisp-transaction-finished-p closure))
+	(setq output (chomp (car (split-string output relisp-over-string))))
+	(ruby-eval (eval (read output))))
+    (setq return-val (chomp (car (split-string output relisp-terminal-string)))))
+  (pop relisp-transaction-list)
+  ;; if a deeper level has set this, leave it alone
+  (unless (boundp 'relisp-ruby-return)
+    (setq relisp-ruby-return return-val)))
 
-(ruby-eval "ruby_method")
 
-;; (ruby-eval "ruby_method")
-(puts relisp-ruby-return)
+
+;;(ruby-eval "puts 'ruby sentence'.reverse")
+;;(ruby-eval "1 + 2")
+
+(puts (ruby-eval "ruby_method"))
+
+
+;; convert lisp to ruby and back
+
+;; check for ruby errors
+;; send messages (both ways) to a buffer *relisp* or something
+;; lock ruby variables
+;; have ruby give elisp the terminal and over strings
