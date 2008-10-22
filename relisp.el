@@ -1,5 +1,5 @@
-(defconst relisp-terminal-string "__terminal-string__")
-(defconst relisp-terminal-regexp (concat relisp-terminal-string "[[:space:]]*"))
+(defun puts (str)
+  (message (prin1-to-string str)))
 
 (defun trim-leading-whitespace (str)
   "..."
@@ -27,8 +27,13 @@
   "..."
   (trim-leading-whitespace (trim-trailing-whitespace str)))
 
-(defun relisp-receiver (closure output)
-  (message (chomp (car (split-string output relisp-terminal-string))) t t))
+;; relisp
+
+(defconst relisp-over-string "__relisp-over-string__")
+(defconst relisp-terminal-string "__relisp-terminal-string__")
+(defconst relisp-endofmessage-string (concat "\\(" relisp-over-string "\\|" relisp-terminal-string "\\)" 
+					 "[[:space:]]*"))
+(defvar relisp-transaction-finished-p 0)
 
 (defun relisp-controller-alive-p nil
   (equal (process-status relisp-controller-process) 'run))
@@ -43,24 +48,29 @@
   (unless (relisp-controller-alive-p)
     (relisp-start-controller))
   (let ((message (concat relisp-terminal-string "\n" 
+			 relisp-over-string     "\n" 
 			 code                   "\n" 
 			 relisp-terminal-string "\n")))
     (if (relisp-controller-alive-p)
-	(tq-enqueue relisp-tq message relisp-terminal-regexp nil 'relisp-receiver))))
+	(progn
+	  (setq relisp-transaction-number 
+		(if (boundp 'relisp-transaction-number) 
+		    (+ 1 relisp-transaction-number)
+		  1))
+	  (tq-enqueue relisp-tq message relisp-endofmessage-string relisp-transaction-number 'relisp-receiver)
+	  (while (and (relisp-controller-alive-p) 
+		      (< relisp-transaction-finished-p relisp-transaction-number))
+	    (accept-process-output))))))
   
-(ruby-eval "2 + 3")
-(ruby-eval "2 + 9")
-(ruby-eval "2 + 1")
+(defun relisp-receiver (closure output)
+  (if (string-match relisp-over-string output)
+      (progn
+	(setq relisp-ruby-return (chomp (car (split-string output relisp-over-string))))
+	(ruby-eval (eval (read relisp-ruby-return))))
+    (setq relisp-ruby-return (chomp (car (split-string output relisp-terminal-string)))))
+  (setq relisp-transaction-finished-p closure))
 
-;; (defun relisp-filter-function (process output)
-;;   (setq return (eval (read output)))
-;;   (if (equal (process-status process) 'run)
-;;       (process-send-string process (prin1-to-string return)))
-;;   (message (prin1-to-string a))
-;;   (accept-process-output relisp-controller-process))
+(ruby-eval "ruby_method")
 
-;; (setq relisp-controller-process 
-;;       (start-process "relisp-controller" nil "/home/don/src/relisp/relisp_controller" "some_script.rb"))
-;; (set-process-filter    relisp-controller-process 'relisp-filter-function)
-;; (accept-process-output relisp-controller-process)
-
+;; (ruby-eval "ruby_method")
+(puts relisp-ruby-return)
