@@ -32,7 +32,11 @@
 (defvar relisp-transaction-list nil)
 
 (defun relisp-controller-alive-p nil
-  (and (boundp 'relisp-controller-process) (equal (process-status relisp-controller-process) 'run)))
+  (and (boundp 'relisp-controller-process) 
+       (equal (process-status relisp-controller-process) 'run)
+       (boundp 'relisp-over-string)
+       (boundp 'relisp-terminal-string)
+       (boundp 'relisp-ruby-error-string)))
 
 (defun relisp-start-controller nil
   (if (boundp 'relisp-tq)
@@ -40,13 +44,24 @@
   (setq relisp-transaction-list nil)
   (setq relisp-transaction-number 0)
   (setq relisp-controller-process 
-	(start-process "relisp-controller" nil "/home/don/src/relisp/relisp_controller"))
+	(start-process "relisp-controller" nil "/Users/don/src/relisp/relisp_controller"))
   (setq relisp-tq 
 	(tq-create relisp-controller-process))
+  (makunbound 'relisp-over-string)
+  (makunbound 'relisp-terminal-string)
+  (makunbound 'relisp-ruby-error-string)
   (tq-enqueue relisp-tq "\n" "\n" 'relisp-terminal-string   'relisp-start-controller-receiver)
   (tq-enqueue relisp-tq "\n" "\n" 'relisp-over-string       'relisp-start-controller-receiver)
-  (tq-enqueue relisp-tq "\n" "\n" 'relisp-ruby-error-string 'relisp-start-controller-receiver))
+  (tq-enqueue relisp-tq "\n" "\n" 'relisp-ruby-error-string 'relisp-start-controller-receiver)
+  (while (and (equal (process-status relisp-controller-process) 'run)
+	      (not (and (boundp 'relisp-over-string)
+			(boundp 'relisp-terminal-string)
+			(boundp 'relisp-ruby-error-string))))
+    (accept-process-output))
+  (relisp-update-endofmessage-regexp))
 
+(defun relisp-start-controller-receiver (variable output)
+  (set variable (chomp output)))
 
 (defun relisp-update-endofmessage-regexp nil
   (setq relisp-endofmessage-regexp (concat "\\("      relisp-over-string 
@@ -54,9 +69,6 @@
 					        "\\|" relisp-ruby-error-string
                                            "\\)" 
 					   "[[:space:]]*")))
-
-(defun relisp-start-controller-receiver (variable output)
-  (set closure (chomp output)))
 
 (defun relisp-new-transaction-number nil
   (if (boundp 'relisp-transaction-number) 
