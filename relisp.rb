@@ -1,5 +1,11 @@
-#!/usr/bin/env ruby
+require 'relisp/translate'
 
+# Emacs is great.  So is Ruby.  This is a collection of tools to
+#   * call Ruby from Emacs (from elisp)
+#   * call elisp from Ruby (once Ruby has invoked from elisp)
+#   * manipulate Emacs without using elisp (Ruby wrappers around some elisp operations)
+#   * contribute to flame wars and blogs entries titled "Ruby vs. lisp vs. scheme vs. haskell vs. ..."
+#
 module Relisp
   TERMINAL_STRING   = "__xxxxxOVERANDOUTxxxxx__"
   OVER_STRING       = "__>>>>>ROGEROVER>>>>>>__"
@@ -30,7 +36,8 @@ module Relisp
         until gets.strip == TERMINAL_STRING
           code << $_
         end
-        puts (eval code, local_binding).to_s
+
+        puts (eval code, local_binding).to_elisp
         puts TERMINAL_STRING
       end
     rescue => dag_yo
@@ -39,10 +46,3 @@ module Relisp
     end
   end 
 end
-
-def ruby_sample_method
-  val = Relisp.elisp_eval("(+ 1 3)")
-  return val.to_i + 3
-end
-
-Relisp.start_controller

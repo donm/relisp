@@ -38,13 +38,16 @@
        (boundp 'relisp-terminal-string)
        (boundp 'relisp-ruby-error-string)))
 
+(defun relisp-ruby-controller (controller)
+  (setq relisp-ruby-controller controller))
+
 (defun relisp-start-controller nil
   (if (boundp 'relisp-tq)
       (tq-close relisp-tq))
   (setq relisp-transaction-list nil)
   (setq relisp-transaction-number 0)
   (setq relisp-controller-process 
-	(start-process "relisp-controller" nil "/Users/don/src/relisp/relisp_controller"))
+	(start-process "relisp-controller" nil relisp-ruby-controller))
   (setq relisp-tq 
 	(tq-create relisp-controller-process))
   (makunbound 'relisp-over-string)
@@ -91,7 +94,7 @@
 		      (member tq-num relisp-transaction-list))
 	    (accept-process-output)))
 	(if (boundp 'relisp-ruby-return)
-	    relisp-ruby-return
+	    (read relisp-ruby-return)
 	  nil))
     nil))
 
@@ -107,17 +110,23 @@
   (unless (boundp 'relisp-ruby-return)
     (setq relisp-ruby-return return-val)))
 
-;;(puts (ruby-eval "puts 'ruby sentence'.reverse"))
-(puts (ruby-eval "1 + 2"))
-
-;;(puts (ruby-eval "ruby_sample_method"))
+(defun relisp-reset-controller nil
+  (tq-close relisp-tq))
 
 
+(relisp-reset-controller)
+(relisp-ruby-controller "/Users/don/src/relisp/test_relisp_controller")
+;;(puts (+ 1 (ruby-eval "1 + 2 + 3")))
+;;(puts (ruby-eval "'ruby sentence'"))
+(puts (ruby-eval "relisp_sample_ruby_method"))
+
+
+;; TODO:
 ;; convert lisp objects to ruby and back
-
 ;; catch emacs errors
 ;; check for ruby errors
 ;; send messages (both ways) to a buffer *relisp* or something
 ;; lock ruby variables
-;; define variables
-;; document variables and functions; interactive
+;; def variables in elisp
+;; document variables and functions; interactive functions
+;; catch warnings
