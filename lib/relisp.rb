@@ -9,7 +9,7 @@ require 'relisp/translate'
 module Relisp
   TERMINAL_STRING   = "__xxxxxOVERANDOUTxxxxx__"
   OVER_STRING       = "__>>>>>ROGEROVER>>>>>>__"
-  RUBY_ERROR_STRING = "__RUBYERROR_HOWCANTHATBE__"
+  RUBY_ERROR_STRING = "__NOTHATSNOTTRUE_THATSIMPOSSIBLE__"
 
   def self.elisp_eval(code)
     puts code
@@ -24,15 +24,15 @@ module Relisp
 
   def self.start_controller
     [TERMINAL_STRING, OVER_STRING, RUBY_ERROR_STRING].each do |constant|
-      gets # wait for communication from emacs
+      gets
       puts constant
     end
 
     begin
       local_binding = binding
-    
+
       loop do
-        code = String.new
+        code = ""
         until gets.strip == TERMINAL_STRING
           code << $_
         end

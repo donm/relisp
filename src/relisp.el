@@ -38,16 +38,21 @@
        (boundp 'relisp-terminal-string)
        (boundp 'relisp-ruby-error-string)))
 
-(defun relisp-ruby-controller (controller)
-  (setq relisp-ruby-controller controller))
+(defun relisp-ruby-controller-path (controller)
+  (setq relisp-ruby-controller-path (expand-file-name controller)))
+
+(defvar relisp-controller-name "relisp-controller")
+
+(defun relisp-stop-controller nil
+  (if (processp 'relisp-controller-process)
+      (delete-process relisp-controller-process)))
 
 (defun relisp-start-controller nil
-  (if (boundp 'relisp-tq)
-      (tq-close relisp-tq))
+  (relisp-stop-controller)
   (setq relisp-transaction-list nil)
   (setq relisp-transaction-number 0)
   (setq relisp-controller-process 
-	(start-process "relisp-controller" nil relisp-ruby-controller))
+	(start-process relisp-controller-name nil relisp-ruby-controller-path))
   (setq relisp-tq 
 	(tq-create relisp-controller-process))
   (makunbound 'relisp-over-string)
@@ -110,18 +115,17 @@
   (unless (boundp 'relisp-ruby-return)
     (setq relisp-ruby-return return-val)))
 
-(defun relisp-reset-controller nil
-  (tq-close relisp-tq))
-
-
-(relisp-reset-controller)
-(relisp-ruby-controller "/Users/don/src/relisp/test_relisp_controller")
+(relisp-stop-controller)
+(relisp-ruby-controller-path "../examples/test_relisp_controller")
 ;;(puts (+ 1 (ruby-eval "1 + 2 + 3")))
-;;(puts (ruby-eval "'ruby sentence'"))
+;;(puts (ruby-eval "'ruby sentence'.reverse"))
 (puts (ruby-eval "relisp_sample_ruby_method"))
 
 
 ;; TODO:
+;; when you to_elisp an array, to_elisp each element?
+;; to_elisp needs to be defined for normal data types as well?
+
 ;; convert lisp objects to ruby and back
 ;; catch emacs errors
 ;; check for ruby errors

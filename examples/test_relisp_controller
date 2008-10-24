@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+$:.unshift File.join(File.dirname(__FILE__), "../lib") # add ../lib to the Ruby library path 
+
 require 'relisp'
 
 # Call this by (puts (ruby-eval "relisp-sample_ruby_method"))
@@ -8,8 +10,8 @@ require 'relisp'
 def relisp_sample_ruby_method
 
   val = Relisp.elisp_eval("(+ 1 3)")
-#  return val.to_i + 3 
-  return [1,2,3,4]
+  return val.to_i + 3 
+#  return [1,2,3,4]
 end
 
 Relisp.start_controller
