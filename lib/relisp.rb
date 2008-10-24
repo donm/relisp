@@ -1,15 +1,16 @@
-require 'relisp/translate'
-
 # Emacs is great.  So is Ruby.  This is a collection of tools to
 #   * call Ruby from Emacs (from elisp)
-#   * call elisp from Ruby (once Ruby has invoked from elisp)
+#   * call elisp from Ruby (once Ruby has been invoked from elisp)
 #   * manipulate Emacs without using elisp (Ruby wrappers around some elisp operations)
 #   * contribute to flame wars and blogs entries titled "Ruby vs. lisp vs. scheme vs. haskell vs. ..."
 #
+
+require 'relisp/translate'
+
 module Relisp
   TERMINAL_STRING   = "__xxxxxOVERANDOUTxxxxx__"
   OVER_STRING       = "__>>>>>ROGEROVER>>>>>>__"
-  RUBY_ERROR_STRING = "__NOTHATSNOTTRUE_THATSIMPOSSIBLE__"
+  RUBY_ERROR_STRING = "__NO_THATSNOTTRUE_THATSIMPOSSIBLE__"
 
   def self.elisp_eval(code)
     puts code
@@ -19,6 +20,7 @@ module Relisp
     until gets.strip == TERMINAL_STRING
       elisp_return << $_
     end
+    elisp_return.gsub!(/\\n\z/, '')
     return elisp_return
   end
 
@@ -36,7 +38,7 @@ module Relisp
         until gets.strip == TERMINAL_STRING
           code << $_
         end
-
+        code.gsub!(/\\n\z/, '')
         puts (eval code, local_binding).to_elisp
         puts TERMINAL_STRING
       end

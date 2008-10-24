@@ -44,7 +44,7 @@
 (defvar relisp-controller-name "relisp-controller")
 
 (defun relisp-stop-controller nil
-  (if (processp 'relisp-controller-process)
+  (if (boundp 'relisp-controller-process)
       (delete-process relisp-controller-process)))
 
 (defun relisp-start-controller nil
@@ -99,7 +99,10 @@
 		      (member tq-num relisp-transaction-list))
 	    (accept-process-output)))
 	(if (boundp 'relisp-ruby-return)
-	    (read relisp-ruby-return)
+	    (if (string-match (concat "\n?" relisp-ruby-error-string "[[:space:]]*") relisp-ruby-return)
+		(concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
+	      (read (trim-trailing-whitespace relisp-ruby-return)))
+	      (read relisp-ruby-return)
 	  nil))
     nil))
 
@@ -120,6 +123,12 @@
 ;;(puts (+ 1 (ruby-eval "1 + 2 + 3")))
 ;;(puts (ruby-eval "'ruby sentence'.reverse"))
 (puts (ruby-eval "relisp_sample_ruby_method"))
+
+
+;; (ruby-eval "a = [1, 2]")
+;; (ruby-eval "a.elisp_type = Relisp::Array")
+;; (puts (ruby-eval "a"))
+;; (puts (elt (ruby-eval "a") 0))
 
 
 ;; TODO:

@@ -1,30 +1,25 @@
-class String
-  def to_ruby_from_elisp
-  end
-end
-
-class Array
+class Object
   def to_elisp
-    Relisp::List.new(self).to_elisp
+    to_s
   end
 end
 
 module Relisp
   class List < Array
     def to_elisp
-      str = '(' 
-      each do |a|
-        str << a.to_s + ' '
-      end
-      str << ')'
+      '(' + join(' ') + ')'
+    end
+  end
+
+  class Array < Array
+    def to_elisp
+      '[' + join(' ') + ']'
     end
   end
 end
 
-class Integer # base of Bignum and Fixnum 
-  # ruby ints are 31 bit (but move to Bignum after that), emacs are 29 and wrap
-  def to_elisp
-    to_s
+class String
+  def to_ruby_from_elisp
   end
 end
 
@@ -37,6 +32,33 @@ end
 class String
   def to_elisp
     '"' + self + '"'
+  end
+end
+
+class Integer # base of Bignum and Fixnum 
+  # ruby ints are 31 bit (but move to Bignum after that), emacs are 29 and wrap
+  def to_elisp
+    to_s
+  end
+end
+
+class Array
+  @@default_elisp_type = Relisp::List
+
+  def self.default_elisp_type=(type)
+    @@default_elisp_type = type
+  end
+
+  def elisp_type
+    @elisp_type ||= @@default_elisp_type
+  end
+
+  def elisp_type=(type)
+    @elisp_type = type
+  end
+
+  def to_elisp
+    elisp_type.new(self).to_elisp
   end
 end
 
