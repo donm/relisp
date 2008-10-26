@@ -88,13 +88,13 @@
     (setq code (prin1-to-string code)))
   (unless (relisp-controller-alive-p)
     (relisp-start-controller))
-  (setq code-to-ruby (concat code                   "\n" 
+  (setq code-for-ruby (concat code                   "\n" 
 			     relisp-terminal-string "\n"))
   (if (relisp-controller-alive-p)
       (progn
 	(let ((tq-num (relisp-new-transaction-number)))
 	  (push tq-num relisp-transaction-list)
-	  (tq-enqueue relisp-tq code-to-ruby relisp-endofmessage-regexp nil 'relisp-receiver)
+	  (tq-enqueue relisp-tq code-for-ruby relisp-endofmessage-regexp nil 'relisp-receiver)
 	  (while (and (relisp-controller-alive-p) 
 		      (member tq-num relisp-transaction-list))
 	    (accept-process-output)))
@@ -102,7 +102,6 @@
 	    (if (string-match (concat "\n?" relisp-ruby-error-string "[[:space:]]*") relisp-ruby-return)
 		(concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
 	      (read (trim-trailing-whitespace relisp-ruby-return)))
-	      (read relisp-ruby-return)
 	  nil))
     nil))
 
@@ -111,7 +110,8 @@
   (if (string-match relisp-over-string output)
       (progn
 	(setq output (chomp (car (split-string output relisp-over-string))))
-	(ruby-eval (eval (read output))))
+	(ruby-eval (prin1-to-string (eval (read output)))))
+;;	(ruby-eval (eval (read output))))
     (setq return-val (chomp (car (split-string output relisp-terminal-string)))))
   (pop relisp-transaction-list)
   ;; if a deeper (recursive) level has set this, leave it alone
@@ -122,24 +122,37 @@
 (relisp-ruby-controller-path "../examples/test_relisp_controller")
 ;;(puts (+ 1 (ruby-eval "1 + 2 + 3")))
 ;;(puts (ruby-eval "'ruby sentence'.reverse"))
-(puts (ruby-eval "relisp_sample_ruby_method"))
+;;(puts (ruby-eval "relisp_sample_ruby_method"))
+;;(puts (ruby-eval "Relisp.concat('Don ', 'March')"))
 
+;;(puts (ruby-eval "Relisp.+(1, 2)"))
+;;(puts (ruby-eval "Relisp.elisp_eval('(+ 1 2)')"))
+
+;;(puts (ruby-eval "relisp_sample_ruby_method1"))
+(puts (read (ruby-eval "relisp_sample_ruby_method1")))
+;;(ruby-eval (concat "Relisp.read " (prin1-to-string (prin1-to-string (ruby-eval "elisp_eval('a'.to_elisp.print)" )))))
+
+
+;;(puts (ruby-eval "(Relisp.read elisp_eval('A'.to_elisp.print)).class" ))
+
+;;(message (concat "Relisp.read " (ruby-eval "Relisp.elisp_eval('(create-file-buffer \"aaaa\" )')")))
 
 ;; (ruby-eval "a = [1, 2]")
 ;; (ruby-eval "a.elisp_type = Relisp::Array")
 ;; (puts (ruby-eval "a"))
-;; (puts (elt (ruby-eval "a") 0))
+;;(puts (elt (ruby-eval "a") 0))
 
 
 ;; TODO:
 ;; when you to_elisp an array, to_elisp each element?
-;; to_elisp needs to be defined for normal data types as well?
-
 ;; convert lisp objects to ruby and back
+
 ;; catch emacs errors
-;; check for ruby errors
 ;; send messages (both ways) to a buffer *relisp* or something
 ;; lock ruby variables
 ;; def variables in elisp
-;; document variables and functions; interactive functions
+;; document elisp variables and functions; interactive functions
 ;; catch warnings
+;; check for more ruby errors
+;; elisp_eval("read") hangs
+;; check if ruby is alive before returning result

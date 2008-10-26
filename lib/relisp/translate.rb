@@ -1,44 +1,63 @@
-class Object
-  def to_elisp
-    to_s
-  end
-end
-
 module Relisp
+  def self.elisp_eval(code)
+    elisp_result = elisp_execute(code)
+    read elisp_result
+  end
+
+  def self.read(arg)
+    elisp_type = elisp_execute "(type-of #{arg})"
+    case elisp_type
+    when 'integer'
+      arg.to_i
+    when 'float'
+      arg.to_f
+    when 'string'
+      Relisp::String.new(arg)
+    end
+  end
+
+  def self.method_missing(function, *args)
+    elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.print}.join(' ') + ')')
+  end
+
   class List < Array
-    def to_elisp
-      '(' + join(' ') + ')'
+    def print
+      list_str = '(' + join(' ') + ')'
+      list_str.dump
     end
   end
 
-  class Array < Array
-    def to_elisp
-      '[' + join(' ') + ']'
+  class Vector < Array
+    def print
+      vect_str = '[' + join(' ') + ']'
+      vect_str.dump
     end
   end
+
+  class String < String
+    def print
+      self.dump
+    end
+  end
+
+  class Character < String
+    def print
+      self[0].to_s.dump
+    end
+  end
+
+  Float   = (3.14159).class
+  Integer = 42.class
+
+  class Buffer
+
+  end
+
 end
 
 class String
-  def to_ruby_from_elisp
-  end
-end
-
-class Float
   def to_elisp
-    to_s
-  end
-end
-
-class String
-  def to_elisp
-    '"' + self + '"'
-  end
-end
-
-class Integer # base of Bignum and Fixnum 
-  # ruby ints are 31 bit (but move to Bignum after that), emacs are 29 and wrap
-  def to_elisp
-    to_s
+    Relisp::String.new(self)
   end
 end
 
@@ -58,14 +77,24 @@ class Array
   end
 
   def to_elisp
-    elisp_type.new(self).to_elisp
+    elisp_type.new(self)
+  end
+end
+
+class Object
+  def print
+    to_s.dump
+  end
+
+  def to_elisp
+    self
   end
 end
 
 ### Programming Types
 ## Integer Type::        Numbers without fractional parts.
 ## Floating Point Type:: Numbers with fractional parts and with a large range.
-# Character Type::      The representation of letters, numbers and
+## Character Type::      The representation of letters, numbers and
 #  control characters.
 # Symbol Type::         A multi-use object that refers to a function,
 #                       variable, or property list, and has a unique identity.

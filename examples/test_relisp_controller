@@ -7,14 +7,27 @@ require 'relisp'
 # Call this by (puts (ruby-eval "relisp-sample_ruby_method"))
 # The result should be '7'
 #
-def relisp_sample_ruby_method
+def relisp_sample_ruby_method1
 
-  val = Relisp.elisp_eval('"a string\n"')
+#  val = Relisp.elisp_eval('"a string\n"')
+#  return val
+
+#  val = Relisp.elisp_eval("(+ 1 3)")
+#  return val.to_i + 3 
+#  return 3.14
+  return [1,2,3]
+end
+
+def relisp_sample_ruby_method2
+
+  val = Relisp.elisp_eval('"a string"')
+
+#   val = Relisp.elisp_eval('(setq a 3)')
+#   val = Relisp.elisp_eval('(+ a 2)')
+
+#  val = Relisp.elisp_eval('(+ 1 3)')
   return val
 
-  val = Relisp.elisp_eval("(+ 1 3)")
-  return val.to_i + 3 
-#  return [1,2,3,4]
 end
 
 Relisp.start_controller

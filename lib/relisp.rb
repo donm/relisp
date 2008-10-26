@@ -12,15 +12,17 @@ module Relisp
   OVER_STRING       = "__>>>>>ROGEROVER>>>>>>__"
   RUBY_ERROR_STRING = "__NO_THATSNOTTRUE_THATSIMPOSSIBLE__"
 
-  def self.elisp_eval(code)
+  def self.elisp_execute(code)
     puts code
     puts OVER_STRING
 
-    elisp_return = String.new
+#    elisp_return = String.new
+    elisp_return = ''.class.new
     until gets.strip == TERMINAL_STRING
       elisp_return << $_
     end
-    elisp_return.gsub!(/\\n\z/, '')
+
+    elisp_return.gsub!(/\n\z/, '')
     return elisp_return
   end
 
@@ -38,8 +40,9 @@ module Relisp
         until gets.strip == TERMINAL_STRING
           code << $_
         end
-        code.gsub!(/\\n\z/, '')
-        puts (eval code, local_binding).to_elisp
+        code.gsub!(/\n\z/, '')
+
+        puts (eval code, local_binding).to_elisp.print
         puts TERMINAL_STRING
       end
     rescue => dag_yo
