@@ -101,36 +101,47 @@
 	(if (boundp 'relisp-ruby-return)
 	    (if (string-match (concat "\n?" relisp-ruby-error-string "[[:space:]]*") relisp-ruby-return)
 		(concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
-	      (read (trim-trailing-whitespace relisp-ruby-return)))
+	      (if (relisp-controller-alive-p)
+		  (read (trim-trailing-whitespace relisp-ruby-return))
+		nil))
 	  nil))
     nil))
+
+
 
 (defun relisp-receiver (closure output)
   (makunbound 'relisp-ruby-return)
   (if (string-match relisp-over-string output)
       (progn
 	(setq output (chomp (car (split-string output relisp-over-string))))
-	(ruby-eval (prin1-to-string (eval (read output)))))
-;;	(ruby-eval (eval (read output))))
+;;	(setq elisp-eval-result (prin1-to-string (eval (read output))))
+	(setq elisp-eval-result (eval (read output)))
+	(ruby-eval (prin1-to-string elisp-eval-result)))
     (setq return-val (chomp (car (split-string output relisp-terminal-string)))))
   (pop relisp-transaction-list)
   ;; if a deeper (recursive) level has set this, leave it alone
   (unless (boundp 'relisp-ruby-return)
     (setq relisp-ruby-return return-val)))
 
+
 (relisp-stop-controller)
 (relisp-ruby-controller-path "../examples/test_relisp_controller")
+
 ;;(puts (+ 1 (ruby-eval "1 + 2 + 3")))
 ;;(puts (ruby-eval "'ruby sentence'.reverse"))
-;;(puts (ruby-eval "relisp_sample_ruby_method"))
+
 ;;(puts (ruby-eval "Relisp.concat('Don ', 'March')"))
 
 ;;(puts (ruby-eval "Relisp.+(1, 2)"))
 ;;(puts (ruby-eval "Relisp.elisp_eval('(+ 1 2)')"))
 
 ;;(puts (ruby-eval "relisp_sample_ruby_method1"))
-(puts (read (ruby-eval "relisp_sample_ruby_method1")))
+(puts (ruby-eval "relisp_sample_ruby_method1"))
+
+
+
 ;;(ruby-eval (concat "Relisp.read " (prin1-to-string (prin1-to-string (ruby-eval "elisp_eval('a'.to_elisp.print)" )))))
+
 
 
 ;;(puts (ruby-eval "(Relisp.read elisp_eval('A'.to_elisp.print)).class" ))
@@ -156,3 +167,5 @@
 ;; check for more ruby errors
 ;; elisp_eval("read") hangs
 ;; check if ruby is alive before returning result
+;; functions
+;; tests

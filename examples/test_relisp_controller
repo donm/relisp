@@ -20,8 +20,10 @@ end
 
 def relisp_sample_ruby_method2
 
-  val = Relisp.elisp_eval('"a string"')
-
+#  val = Relisp.elisp_eval('"a string"')
+#  val = Relisp.elisp_eval('2')
+  buffer = Relisp.elisp_eval '(create-file-buffer "arst")'
+  val = buffer.name
 #   val = Relisp.elisp_eval('(setq a 3)')
 #   val = Relisp.elisp_eval('(+ a 2)')
 
