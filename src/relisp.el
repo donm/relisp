@@ -1,3 +1,5 @@
+;;; first, some string functions
+
 (defun puts (str)
   (message (prin1-to-string str)))
 
@@ -27,7 +29,7 @@
   "Remove leading and trailing whitespace from STR."
   (trim-leading-whitespace (trim-trailing-whitespace str)))
 
-;; relisp
+;;; now relisp stuff
 
 (defvar relisp-transaction-list nil)
 
@@ -66,7 +68,8 @@
 			(boundp 'relisp-terminal-string)
 			(boundp 'relisp-ruby-error-string))))
     (accept-process-output))
-  (relisp-update-endofmessage-regexp))
+  (relisp-update-endofmessage-regexp)
+  relisp-controller-process)
 
 (defun relisp-start-controller-receiver (variable output)
   (set variable (chomp output)))
@@ -88,7 +91,7 @@
     (setq code (prin1-to-string code)))
   (unless (relisp-controller-alive-p)
     (relisp-start-controller))
-  (setq code-for-ruby (concat code                   "\n" 
+  (setq code-for-ruby (concat code                  "\n" 
 			     relisp-terminal-string "\n"))
   (if (relisp-controller-alive-p)
       (progn
@@ -103,11 +106,11 @@
 		(concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
 	      (if (relisp-controller-alive-p)
 		  (read (trim-trailing-whitespace relisp-ruby-return))
-		nil))
-	  nil))
+		;; need to raise an error here
+		(concat "relisp-controller is not alive. Code was:\n"
+			code-for-ruby)))
+	  "relisp-controller must have died"))
     nil))
-
-
 
 (defun relisp-receiver (closure output)
   (makunbound 'relisp-ruby-return)
@@ -120,52 +123,6 @@
     (setq return-val (chomp (car (split-string output relisp-terminal-string)))))
   (pop relisp-transaction-list)
   ;; if a deeper (recursive) level has set this, leave it alone
+  (puts (boundp 'relisp-ruby-return))
   (unless (boundp 'relisp-ruby-return)
     (setq relisp-ruby-return return-val)))
-
-
-(relisp-stop-controller)
-(relisp-ruby-controller-path "../examples/test_relisp_controller")
-
-;;(puts (+ 1 (ruby-eval "1 + 2 + 3")))
-;;(puts (ruby-eval "'ruby sentence'.reverse"))
-
-;;(puts (ruby-eval "Relisp.concat('Don ', 'March')"))
-
-;;(puts (ruby-eval "Relisp.+(1, 2)"))
-;;(puts (ruby-eval "Relisp.elisp_eval('(+ 1 2)')"))
-
-;;(puts (ruby-eval "relisp_sample_ruby_method1"))
-(puts (ruby-eval "relisp_sample_ruby_method1"))
-
-
-
-;;(ruby-eval (concat "Relisp.read " (prin1-to-string (prin1-to-string (ruby-eval "elisp_eval('a'.to_elisp.print)" )))))
-
-
-
-;;(puts (ruby-eval "(Relisp.read elisp_eval('A'.to_elisp.print)).class" ))
-
-;;(message (concat "Relisp.read " (ruby-eval "Relisp.elisp_eval('(create-file-buffer \"aaaa\" )')")))
-
-;; (ruby-eval "a = [1, 2]")
-;; (ruby-eval "a.elisp_type = Relisp::Array")
-;; (puts (ruby-eval "a"))
-;;(puts (elt (ruby-eval "a") 0))
-
-
-;; TODO:
-;; when you to_elisp an array, to_elisp each element?
-;; convert lisp objects to ruby and back
-
-;; catch emacs errors
-;; send messages (both ways) to a buffer *relisp* or something
-;; lock ruby variables
-;; def variables in elisp
-;; document elisp variables and functions; interactive functions
-;; catch warnings
-;; check for more ruby errors
-;; elisp_eval("read") hangs
-;; check if ruby is alive before returning result
-;; functions
-;; tests
