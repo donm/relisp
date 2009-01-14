@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.join(File.dirname(__FILE__), "../lib") # add ../lib to the Ruby library path 
+
+require 'relisp'
+
+Relisp.start_slave
+Relisp.elisp_eval "(+ 1 2)"
+

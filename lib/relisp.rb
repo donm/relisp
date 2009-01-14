@@ -16,16 +16,17 @@ module Relisp
   ENDOFMESSAGE_REGEXP = Regexp.new(ANSWER_CODE + "|" + QUESTION_CODE)
 
   @@local_binding = nil
+  @@ruby_master = true
 
   def self.elisp_eval(code)
-    puts code
-    puts QUESTION_CODE
+    write_to_emacs code
+    write_to_emacs QUESTION_CODE
 
     elisp_return = ''
     until gets.strip == ANSWER_CODE
       if $_ == QUESTION_CODE
-        puts (eval elisp_return, @@local_binding).to_elisp.print
-        puts ANSWER_CODE
+        write_to_emacs (eval elisp_return, @@local_binding).to_elisp.print
+        write_to_emacs ANSWER_CODE
         elisp_return = ''
       else
         elisp_return << $_
@@ -39,14 +40,16 @@ module Relisp
   def self.pass_constants
     [ANSWER_CODE, QUESTION_CODE, ENDOFMESSAGE_REGEXP].each do |constant|
       gets
-      puts constant
+      write_to_emacs constant
     end
   end
 
   def self.write_to_emacs(code)
-  end
-
-  def self.read_from_emacs
+    if @@ruby_master
+      puts code
+    else
+      @@emacs_pipe.puts code
+    end
   end
 
   def self.become_slave
@@ -62,13 +65,21 @@ module Relisp
         end
         code.gsub!(/\n\z/, '')
 
-        puts (eval code, @@local_binding).to_elisp.print
-        puts ANSWER_CODE
+        write_to_emacs (eval code, @@local_binding).to_elisp.print
+        write_to_emacs ANSWER_CODE
       end
     rescue => dag_yo
-      puts dag_yo
-      puts ENDOFMESSAGE_REGEXP
+      write_to_emacs dag_yo
+      write_to_emacs ENDOFMESSAGE_REGEXP
     end
   end 
   
+  def self.start_slave
+    @@ruby_master = false
+    emacs_command = "emacs --batch -l ../src/relisp.el --eval '(relisp-become-slave)'"
+    @@emacs_pipe = IO.popen(emacs_command, "w+")
+    sleep 3
+    pass_constants
+  end
+
 end

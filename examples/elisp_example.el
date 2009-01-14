@@ -19,7 +19,7 @@
 (relisp-start-slave)
 
 (puts (+ 1 (ruby-eval "1 + 2 + 3")))
-(puts (ruby-eval "'ruby sentence'.reverse"))
+;;(puts (ruby-eval "'ruby sentence'.reverse"))
 
 ;;(puts (ruby-eval "Relisp.concat('Don ', 'March')"))
 

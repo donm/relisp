@@ -89,10 +89,22 @@
 (defun relisp-send-to-ruby (message)
   (let ((tq-num (relisp-new-transaction-number)))
     (push tq-num relisp-transaction-list)
-    (tq-enqueue relisp-tq message relisp-endofmessage-regexp nil 'relisp-receiver)
-    (while (and (relisp-slave-alive-p) 
-		(member tq-num relisp-transaction-list))
-      (accept-process-output))))
+    (if relisp-emacs-master-p
+	(progn
+	  (tq-enqueue relisp-tq message relisp-endofmessage-regexp nil 'relisp-receiver)
+	  (while (and (relisp-slave-alive-p) 
+		      (member tq-num relisp-transaction-list))
+	    (accept-process-output)))
+      (message message)
+      (relisp-receiver nil (relisp-accept-process-output)))))
+
+(defun relisp-accept-process-output nil
+  (setq input "")
+  (setq input-line "")
+  (while (null (string-match relisp-endofmessage-regexp input-line))
+     (setq input-line (read-from-minibuffer ""))
+     (setq input (concat input input-line)))
+  input)
 
 (defun relisp-process-ruby-response nil
   (if (boundp 'relisp-ruby-return)
@@ -111,23 +123,22 @@
 	(relisp-process-ruby-response))
     nil))
 
-(defun relisp-form-ruby-question (code)
+(defun relisp-form-question (code)
   (unless (stringp code)
     (setq code (prin1-to-string code)))
   (concat code "\n" relisp-question-code "\n"))
 
-(defun relisp-form-ruby-answer (code)
+(defun relisp-form-answer (code)
 ;;  (unless (stringp code)
     (setq code (prin1-to-string code))
   (concat code "\n" relisp-answer-code "\n"))
 
 (defun ruby-eval (ruby-code)
-  (relisp-contact-ruby (relisp-form-ruby-question ruby-code)))
-
+  (relisp-contact-ruby (relisp-form-question ruby-code)))
 
 (defun relisp-answer-ruby (question)
   (setq question (read (chomp (car (split-string question relisp-question-code)))))
-  (relisp-contact-ruby (relisp-form-ruby-answer (eval question))))
+  (relisp-contact-ruby (relisp-form-answer (eval question))))
 
 (defun relisp-receiver (closure message)
   (makunbound 'relisp-ruby-return)
@@ -153,15 +164,14 @@
   (setq relisp-question-code (read-from-minibuffer ""))
   (message "\n")
   (setq relisp-error-code (read-from-minibuffer ""))
-  
   (loop 
    (setq input "")
    (setq input-line "")
    (while (null (string-match relisp-question-code input-line))
+     (setq input-line (read-from-minibuffer ""))
      (setq input (concat input input-line)))
    (setq question (read (chomp (car (split-string input-line relisp-question-code)))))
-   (message (relisp-form-ruby-answer (eval question)))))
+   (message (relisp-form-answer (eval question)))))
      
 
 
-  
