@@ -12,7 +12,7 @@ class TestMyClass < Test::Unit::TestCase
   end
   
   def test_case
-    3
+    fail "arst"
   end
 end
 

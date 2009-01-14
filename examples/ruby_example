@@ -32,4 +32,4 @@ def relisp_sample_ruby_method2
 
 end
 
-Relisp.start_controller
+Relisp.become_slave

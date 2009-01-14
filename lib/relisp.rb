@@ -1,53 +1,73 @@
+#!/usr/bin/env ruby
+
 # Emacs is great.  So is Ruby.  This is a collection of tools to
 #   * call Ruby from Emacs (from elisp)
 #   * call elisp from Ruby (once Ruby has been invoked from elisp)
 #   * manipulate Emacs without using elisp (Ruby wrappers around some elisp operations)
-#   * contribute to flame wars and blogs entries titled "Ruby vs. lisp vs. scheme vs. haskell vs. ..."
+#   * contribute to flame wars and blog entries titled "Ruby vs. lisp vs. scheme vs. haskell vs. ..."
 #
 
 require 'relisp/translate'
 
 module Relisp
-  TERMINAL_STRING   = "__xxxxxOVERANDOUTxxxxx__"
-  OVER_STRING       = "__>>>>>ROGEROVER>>>>>>__"
-  RUBY_ERROR_STRING = "__NO_THATSNOTTRUE_THATSIMPOSSIBLE__"
+  ANSWER_CODE         = "__...ANSWER...__"
+  QUESTION_CODE       = "__???QUESTION???__"
+  ERROR_CODE          = "__!!!NO_THATSNOTTRUE_THATSIMPOSSIBLE!!!__"
+  ENDOFMESSAGE_REGEXP = Regexp.new(ANSWER_CODE + "|" + QUESTION_CODE)
 
-  def self.elisp_execute(code)
+  @@local_binding = nil
+
+  def self.elisp_eval(code)
     puts code
-    puts OVER_STRING
+    puts QUESTION_CODE
 
-#    elisp_return = String.new
-    elisp_return = ''.class.new
-    until gets.strip == TERMINAL_STRING
-      elisp_return << $_
+    elisp_return = ''
+    until gets.strip == ANSWER_CODE
+      if $_ == QUESTION_CODE
+        puts (eval elisp_return, @@local_binding).to_elisp.print
+        puts ANSWER_CODE
+        elisp_return = ''
+      else
+        elisp_return << $_
+      end
     end
 
     elisp_return.gsub!(/\n\z/, '')
     return elisp_return
   end
 
-  def self.start_controller
-    [TERMINAL_STRING, OVER_STRING, RUBY_ERROR_STRING].each do |constant|
+  def self.pass_constants
+    [ANSWER_CODE, QUESTION_CODE, ENDOFMESSAGE_REGEXP].each do |constant|
       gets
       puts constant
     end
+  end
+
+  def self.write_to_emacs(code)
+  end
+
+  def self.read_from_emacs
+  end
+
+  def self.become_slave
+    pass_constants
 
     begin
-      local_binding = binding
+      @@local_binding = binding
 
       loop do
-        code = ""
-        until gets.strip == TERMINAL_STRING
+        code = ''
+        until gets.strip == QUESTION_CODE
           code << $_
         end
         code.gsub!(/\n\z/, '')
 
-        puts (eval code, local_binding).to_elisp.print
-        puts TERMINAL_STRING
+        puts (eval code, @@local_binding).to_elisp.print
+        puts ANSWER_CODE
       end
     rescue => dag_yo
       puts dag_yo
-      puts RUBY_ERROR_STRING
+      puts ENDOFMESSAGE_REGEXP
     end
   end 
   

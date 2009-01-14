@@ -14,22 +14,19 @@
 ;; functions
 ;; tests
 
-(relisp-stop-controller)
-;;(relisp-ruby-controller-path "../examples/ruby_example")
-(relisp-ruby-controller-path "../test/test_runner.rb")
-(relisp-start-controller)
-(puts (ruby-eval "run_tests"))
+(relisp-stop-slave)
+(relisp-ruby-slave-path "../examples/ruby_example")
+(relisp-start-slave)
 
-
-;;(puts (+ 1 (ruby-eval "1 + 2 + 3")))
-;;(puts (ruby-eval "'ruby sentence'.reverse"))
+(puts (+ 1 (ruby-eval "1 + 2 + 3")))
+(puts (ruby-eval "'ruby sentence'.reverse"))
 
 ;;(puts (ruby-eval "Relisp.concat('Don ', 'March')"))
 
 ;;(puts (ruby-eval "Relisp.+(1, 2)"))
 ;;(puts (ruby-eval "Relisp.elisp_eval('(+ 1 2)')"))
 
-;;(puts (ruby-eval "relisp_sample_ruby_method1"))
+(puts (ruby-eval "relisp_sample_ruby_method1"))
 ;;(puts (ruby-eval "relisp_sample_ruby_method2"))
 
 ;;(ruby-eval (concat "Relisp.read " (prin1-to-string (prin1-to-string (ruby-eval "elisp_eval('a'.to_elisp.print)" )))))
