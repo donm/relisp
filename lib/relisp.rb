@@ -10,49 +10,73 @@
 require 'relisp/translate'
 
 module Relisp
-  ANSWER_CODE         = "__...ANSWER...__"
-  QUESTION_CODE       = "__???QUESTION???__"
-  ERROR_CODE          = "__!!!NO_THATSNOTTRUE_THATSIMPOSSIBLE!!!__"
-  ENDOFMESSAGE_REGEXP = Regexp.new(ANSWER_CODE + "|" + QUESTION_CODE)
+  ANSWER_CODE         = "___FORTYTWO___"
+  QUESTION_CODE       = "___TOBEORNOTTOBE___"
+  ERROR_CODE          = "___NO_THATSNOTTRUE_THATSIMPOSSIBLE___"
+  ENDOFMESSAGE_REGEXP = Regexp.new(ANSWER_CODE + "|" + QUESTION_CODE + "|" + ERROR_CODE)
 
   @@local_binding = nil
   @@ruby_master = true
+  @@debug = false
 
-  def self.elisp_eval(code)
+  def self.debug=(val)
+    @@debug = val
+  end
+
+  def self.elisp_execute(code)
     write_to_emacs code
     write_to_emacs QUESTION_CODE
 
-    elisp_return = ''
-    until gets.strip == ANSWER_CODE
-      if $_ == QUESTION_CODE
-        write_to_emacs (eval elisp_return, @@local_binding).to_elisp.print
+    input = ''
+    input_line = read_from_emacs
+    until input_line.strip =~ ENDOFMESSAGE_REGEXP
+      if input == QUESTION_CODE
+        write_to_emacs (eval input, @@local_binding).to_elisp.print
         write_to_emacs ANSWER_CODE
-        elisp_return = ''
+        input = ''
       else
-        elisp_return << $_
+        input << input_line
       end
+      input_line = read_from_emacs
     end
 
-    elisp_return.gsub!(/\n\z/, '')
-    return elisp_return
+    input.gsub!(/\n\z/, '')
+    return input
   end
-
+  
   def self.pass_constants
-    [ANSWER_CODE, QUESTION_CODE, ENDOFMESSAGE_REGEXP].each do |constant|
-      gets
+    [ANSWER_CODE, QUESTION_CODE, ERROR_CODE].each do |constant|
+      read_from_emacs
       write_to_emacs constant
     end
   end
 
   def self.write_to_emacs(code)
     if @@ruby_master
-      puts code
-    else
+      if @@debug
+        puts "relisp> " + code unless code =~ ENDOFMESSAGE_REGEXP
+      end
       @@emacs_pipe.puts code
+    else
+      puts code
+    end
+  end
+
+  def self.read_from_emacs
+    if @@ruby_master
+      input = @@emacs_pipe.gets
+      if @@debug
+        puts "=> " + input unless input =~ ENDOFMESSAGE_REGEXP
+      end
+      return input
+    else
+      gets
     end
   end
 
   def self.become_slave
+    @@ruby_master = false
+
     pass_constants
 
     begin
@@ -60,8 +84,10 @@ module Relisp
 
       loop do
         code = ''
-        until gets.strip == QUESTION_CODE
-          code << $_
+        input = read_from_emacs
+        until input.strip == QUESTION_CODE
+          code << input
+          input = read_from_emacs
         end
         code.gsub!(/\n\z/, '')
 
@@ -70,15 +96,15 @@ module Relisp
       end
     rescue => dag_yo
       write_to_emacs dag_yo
-      write_to_emacs ENDOFMESSAGE_REGEXP
+      write_to_emacs ERROR_CODE
     end
   end 
   
   def self.start_slave
-    @@ruby_master = false
-    emacs_command = "emacs --batch -l ../src/relisp.el --eval '(relisp-become-slave)'"
+    emacs_command = "emacs --batch -l ../src/relisp.el --eval '(relisp-become-slave)' 2>&1"
     @@emacs_pipe = IO.popen(emacs_command, "w+")
-    sleep 3
+    until read_from_emacs.strip == "SEND CONSTANTS"
+    end
     pass_constants
   end
 

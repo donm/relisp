@@ -4,6 +4,10 @@ $:.unshift File.join(File.dirname(__FILE__), "../lib") # add ../lib to the Ruby 
 
 require 'relisp'
 
+Relisp.debug = true
+
 Relisp.start_slave
 Relisp.elisp_eval "(+ 1 2)"
+Relisp.*(5,2)
+puts (Relisp.elisp_eval "(concat \"Don \" \"March\")")
 

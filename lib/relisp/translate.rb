@@ -4,17 +4,16 @@ module Relisp
   end
 
   VARIABLE_PREFIX = '--reserved--relisp--variable--'
-  @@current_elisp_variable = '0'
+  @@current_elisp_variable_num = '0'
 
   def self.new_elisp_variable
-    VARIABLE_PREFIX + @@current_elisp_variable.succ!
+    VARIABLE_PREFIX + @@current_elisp_variable_num.succ!
   end
 
   def self.elisp_eval(code)
     elisp_result = elisp_execute(code)
     elisp_object_variable = new_elisp_variable
-    elisp_execute("(setq #{elisp_object_variable} elisp-eval-result)")
-
+    elisp_execute("(setq #{elisp_object_variable} relisp-eval-result)")
     read(elisp_result, elisp_object_variable)
   end
 
@@ -55,8 +54,8 @@ module Relisp
     
   def self.read(object_string, object_variable = nil)
     if object_variable
-      elisp_type = elisp_execute "(type-of #{object_variable})"
-      object_string = elisp_execute(object_variable)
+      elisp_type    = elisp_execute "(type-of #{object_variable})"
+#      object_string = elisp_execute(object_variable)
     else
       elisp_type = elisp_execute "(type-of #{object_string})"
     end 
@@ -69,7 +68,8 @@ module Relisp
 #    when 'vector'
 #      Relisp::Vector.new(eval object_string)
     when 'string'
-      Relisp::String.new(object_string)
+#      Relisp::String.new(object_string)
+      Relisp::String.new(eval object_string)
     when 'buffer'
       Relisp::Buffer.new(object_variable)
     end

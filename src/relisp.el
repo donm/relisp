@@ -25,11 +25,13 @@
 	(setq s (replace-match "" t nil s))))
     s))
 
-(defun chomp (str)
+(defun strip (str)
   "Remove leading and trailing whitespace from STR."
   (trim-leading-whitespace (trim-trailing-whitespace str)))
 
 ;;; now relisp stuff
+
+(defvar relisp-buffer-name "*Relisp*")
 
 (defvar relisp-transaction-list nil)
 
@@ -72,7 +74,7 @@
   relisp-slave-process)
 
 (defun relisp-start-slave-receiver (variable output)
-  (set variable (chomp output)))
+  (set variable (strip output)))
 
 (defun relisp-update-endofmessage-regexp nil
   (setq relisp-endofmessage-regexp (concat "\\("      relisp-question-code 
@@ -91,7 +93,7 @@
     (push tq-num relisp-transaction-list)
     (if relisp-emacs-master-p
 	(progn
-	  (tq-enqueue relisp-tq message relisp-endofmessage-regexp nil 'relisp-receiver)
+	  (tq-enqueue relisp-tq (concat message "\n") relisp-endofmessage-regexp nil 'relisp-receiver)
 	  (while (and (relisp-slave-alive-p) 
 		      (member tq-num relisp-transaction-list))
 	    (accept-process-output)))
@@ -126,28 +128,41 @@
 (defun relisp-form-question (code)
   (unless (stringp code)
     (setq code (prin1-to-string code)))
-  (concat code "\n" relisp-question-code "\n"))
+  (concat code "\n" relisp-question-code))
 
 (defun relisp-form-answer (code)
 ;;  (unless (stringp code)
     (setq code (prin1-to-string code))
-  (concat code "\n" relisp-answer-code "\n"))
+  (concat code "\n" relisp-answer-code))
+
+(defun relisp-log (text)
+  (get-buffer-create relisp-buffer-name)
+  (unless (string-match relisp-endofmessage-regexp (strip text))
+    (set-buffer relisp-buffer-name)
+    (end-of-buffer)
+    (insert text "\n")))
+
 
 (defun ruby-eval (ruby-code)
+  (relisp-log (concat "relisp> " ruby-code))
   (relisp-contact-ruby (relisp-form-question ruby-code)))
 
 (defun relisp-answer-ruby (question)
-  (setq question (read (chomp (car (split-string question relisp-question-code)))))
-  (relisp-contact-ruby (relisp-form-answer (eval question))))
+  (setq question (strip (car (split-string question relisp-question-code))))
+  (relisp-log (concat "?=> " question))
+  (setq question (read question))
+  (setq relisp-eval-result (eval question))
+  (relisp-log (concat "relisp> " (prin1-to-string relisp-eval-result)))
+  (relisp-contact-ruby (relisp-form-answer relisp-eval-result)))
 
 (defun relisp-receiver (closure message)
   (makunbound 'relisp-ruby-return)
   (if (string-match relisp-question-code message)
       (relisp-answer-ruby message)
-    (setq return-val (chomp (car (split-string message relisp-answer-code)))))
+    (setq return-val (strip (car (split-string message relisp-answer-code))))
+    (relisp-log (concat "=> " return-val)))
   (pop relisp-transaction-list)
   ;; if a deeper (recursive) level has set this, leave it alone
-  (puts (boundp 'relisp-ruby-return))
   (unless (boundp 'relisp-ruby-return)
     (setq relisp-ruby-return return-val)))
 
@@ -155,23 +170,24 @@
 
 (defun relisp-become-slave nil
   (setq relisp-emacs-master-p nil)
-  ;; redefine ruby-eval for this condition
-  
   ;; get constants
-  (message "\n")
+  (message "SEND CONSTANTS")
+  (message "(prompt for answer code)")
   (setq relisp-answer-code (read-from-minibuffer ""))
-  (message "\n")
+  (message "(prompt for question code)")
   (setq relisp-question-code (read-from-minibuffer ""))
-  (message "\n")
+  (message "(prompt for error code)")
   (setq relisp-error-code (read-from-minibuffer ""))
-  (loop 
+  (relisp-update-endofmessage-regexp)
+  (while (equal 1 1) ;; loop is a CL function, I guess
    (setq input "")
    (setq input-line "")
-   (while (null (string-match relisp-question-code input-line))
+   (while (null (string-match relisp-question-code (strip input-line)))
      (setq input-line (read-from-minibuffer ""))
      (setq input (concat input input-line)))
-   (setq question (read (chomp (car (split-string input-line relisp-question-code)))))
-   (message (relisp-form-answer (eval question)))))
+   (setq question (read (strip (car (split-string input relisp-question-code)))))
+   (setq relisp-eval-result (eval question))
+   (message (relisp-form-answer relisp-eval-result))))
      
 
 
