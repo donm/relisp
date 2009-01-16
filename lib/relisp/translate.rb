@@ -1,57 +1,28 @@
 module Relisp
-  def self.method_missing(function, *args)
-    elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.print}.join(' ') + ')')
-  end
+  ### Programming Types
 
-  VARIABLE_PREFIX = '--reserved--relisp--variable--'
-  @@current_elisp_variable_num = '0'
-
-  def self.new_elisp_variable
-    VARIABLE_PREFIX + @@current_elisp_variable_num.succ!
-  end
-
-  def self.elisp_eval(code)
-    elisp_result = elisp_execute(code)
-    elisp_object_variable = new_elisp_variable
-    elisp_execute("(setq #{elisp_object_variable} relisp-eval-result)")
-    read(elisp_result, elisp_object_variable)
-  end
-
-    ### Programming Types
-    ### Integer Type::        Numbers without fractional parts.
-    ### Floating Point Type:: Numbers with fractional parts and with a large range.
-    # Character Type::      The representation of letters, numbers and
-    #  control characters.
-    # Symbol Type::         A multi-use object that refers to a function,
-    #                       variable, or property list, and has a unique identity.
-    # Sequence Type::       Both lists and arrays are classified as sequences.
-    # Cons Cell Type::      Cons cells, and lists (which are made from cons cells).
-    # Array Type::          Arrays include strings and vectors.
-    ### String Type::         An (efficient) array of characters.
-    # Vector Type::         One-dimensional arrays.
-    # Char-Table Type::     One-dimensional sparse arrays indexed by characters.
-    # Bool-Vector Type::    One-dimensional arrays of `t' or `nil'.
-    # Hash Table Type::     Super-fast lookup tables.
-    # Function Type::       A piece of executable code you can call from elsewhere.
-    # Macro Type::          A method of expanding an expression into another
-    #                           expression, more fundamental but less pretty.
-    # Primitive Function Type::     A function written in C, callable from Lisp.
-    # Byte-Code Type::      A function written in Lisp, then compiled.
-    # Autoload Type::       A type used for automatically loading seldom-used
-    #                         functions.
-    
-    ### Editing Types
-    ### Buffer Type::         The basic object of editing.
-    # Marker Type::         A position in a buffer.
-    # Window Type::         Buffers are displayed in windows.
-    # Frame Type::		Windows subdivide frames.
-    # Window Configuration Type::   Recording the way a frame is subdivided.
-    # Frame Configuration Type::    Recording the status of all frames.
-    # Process Type::        A process running on the underlying OS.
-    # Stream Type::         Receive or send characters.
-    # Keymap Type::         What function a keystroke invokes.
-    # Overlay Type::        How an overlay is represented.    case elisp_type
-    
+  ### Integer Type::        Numbers without fractional parts.
+  ### Floating Point Type:: Numbers with fractional parts and with a large range.
+  #int# Character Type::      The representation of letters, numbers and
+  #           control characters.
+  ### Symbol Type::         A multi-use object that refers to a function,
+  #                       variable, or property list, and has a unique identity.
+  ### (Sequence Type)::       Both lists and arrays are classified as sequences.
+  ### Cons Cell Type::      Cons cells, and lists (which are made from cons cells).
+  ### (Array Type)::          Arrays include strings and vectors.
+  ###   String Type::         An (efficient) array of characters.
+  ###   Vector Type::         One-dimensional arrays.
+  # Char-Table Type::     One-dimensional sparse arrays indexed by characters.
+  # Bool-Vector Type::    One-dimensional arrays of `t' or `nil'.
+  ### Hash Table Type::     Super-fast lookup tables.
+  #cons# Function Type::       A piece of executable code you can call from elsewhere.
+  #cons# Macro Type::          A method of expanding an expression into another
+  #                           expression, more fundamental but less pretty.
+  #xxx Primitive Function Type::     A function written in C, callable from Lisp.
+  #xxx Byte-Code Type::      A function written in Lisp, then compiled.
+  # Autoload Type::       A type used for automatically loading seldom-used
+  #                         functions.
+  
   def self.read(object_string, object_variable = nil)
     if object_variable
       elisp_type    = elisp_execute "(type-of #{object_variable})"
@@ -65,14 +36,60 @@ module Relisp
       object_string.to_i
     when 'float'
       object_string.to_f
-#    when 'vector'
-#      Relisp::Vector.new(eval object_string)
+    when 'symbol'
+      if object_string == 'nil'
+        nil
+      else
+        object_string.to_sym
+      end
+    when 'cons'
+      size = elisp_eval( "(length #{object_variable})" )
+      object_array = Array.new
+      size.times do |i|
+        object_array << elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
+      end
+      Relisp::Cons.new(object_array)
     when 'string'
-#      Relisp::String.new(object_string)
-      Relisp::String.new(eval object_string)
+      Relisp::String.new(eval(object_string))
+    when 'vector'
+      size = elisp_eval( "(length #{object_variable})" )
+      object_array = Array.new
+      size.times do |i|
+        object_array << elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
+      end
+      Relisp::Vector.new(object_array)
+    when 'hash-table'
+      keys_var = new_elisp_variable
+      vals_var = new_elisp_variable
+      elisp_eval( "(setq #{keys_var} nil)" )
+      elisp_eval( "(setq #{vals_var} nil)" )
+      elisp_eval( "(maphash (lambda (key val)
+                                           (setq #{keys_var} (append #{keys_var} (list key)))
+                                           (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
+      keys = elisp_eval( "#{keys_var}" )
+      vals = elisp_eval( "#{vals_var}" )
+      keys ||= []
+      hash = Hash.new
+      keys.each_index do |i|
+        hash[keys[i]] = vals[i]
+      end
+      hash
+  ### Editing Types
+  ### Buffer Type::         The basic object of editing.
+  # Marker Type::         A position in a buffer.
+  # Window Type::         Buffers are displayed in windows.
+  # Frame Type::		Windows subdivide frames.
+  # Window Configuration Type::   Recording the way a frame is subdivided.
+  # Frame Configuration Type::    Recording the status of all frames.
+  # Process Type::        A process running on the underlying OS.
+  # Stream Type::         Receive or send characters.
+  # Keymap Type::         What function a keystroke invokes.
+  # Overlay Type::        How an overlay is represented.    case elisp_type
     when 'buffer'
       Relisp::Buffer.new(object_variable)
     end
+
+    
   end
 
 class Buffer
@@ -89,7 +106,7 @@ class Buffer
 
 end
 
-class List < Array
+class Cons < Array
   def print
     '(' + join(' ') + ')'
   end
@@ -144,7 +161,7 @@ class String
 end
 
 class Array
-  @@default_elisp_type = Relisp::List
+  @@default_elisp_type = Relisp::Cons
 
   def self.default_elisp_type=(type)
     @@default_elisp_type = type
@@ -175,4 +192,39 @@ end
 
 
 
+
+# (setq bar (lambda nil
+#            (+ 1 2)))
+# => (lambda nil (+ 1 2))
+
+# (type-of (car '(+ 1 2)))
+# => symbol
+
+# (type-of (car bar))
+# => symbol
+
+# (functionp bar)
+# => t
+
+# (functionp 'bar)
+# => nil
+
+# (funcall bar)
+# => 3
+
+# (prin1-to-string bar)
+# => "(lambda nil (+ 1 2))"
+
+# (defun foo nil
+#  (+ 1 2))
+# => foo
+
+# (functionp 'foo)
+# => t
+
+# (type-of (symbol-function 'foo))
+# => cons
+ 
+# (type-of (symbol-function 'car))
+# => subr
 

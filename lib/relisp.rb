@@ -14,13 +14,30 @@ module Relisp
   QUESTION_CODE       = "___TOBEORNOTTOBE___"
   ERROR_CODE          = "___NO_THATSNOTTRUE_THATSIMPOSSIBLE___"
   ENDOFMESSAGE_REGEXP = Regexp.new(ANSWER_CODE + "|" + QUESTION_CODE + "|" + ERROR_CODE)
+  VARIABLE_PREFIX = '--reserved--relisp--variable--'
 
   @@local_binding = nil
   @@ruby_master = true
   @@debug = false
+  @@current_elisp_variable_num = '0'
 
   def self.debug=(val)
     @@debug = val
+  end
+
+  def self.new_elisp_variable
+    VARIABLE_PREFIX + @@current_elisp_variable_num.succ!
+  end
+
+  def self.elisp_eval(code)
+    elisp_result = elisp_execute(code)
+    elisp_object_variable = new_elisp_variable
+    elisp_execute("(setq #{elisp_object_variable} relisp-eval-result)")
+    read(elisp_result, elisp_object_variable)
+  end
+
+  def self.method_missing(function, *args)
+    elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.print}.join(' ') + ')')
   end
 
   def self.elisp_execute(code)
@@ -101,7 +118,11 @@ module Relisp
   end 
   
   def self.start_slave
-    emacs_command = "emacs --batch -l ../src/relisp.el --eval '(relisp-become-slave)' 2>&1"
+    emacs_command =    "emacs --batch "
+    emacs_command << "-l ../src/relisp.el "
+    emacs_command << "--eval '(relisp-become-slave)' "
+    emacs_command << "--no-site-file "
+    emacs_command << "2>&1"
     @@emacs_pipe = IO.popen(emacs_command, "w+")
     until read_from_emacs.strip == "SEND CONSTANTS"
     end
