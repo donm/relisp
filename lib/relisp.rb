@@ -25,6 +25,22 @@ module Relisp
     @@debug = val
   end
 
+  def self.debug
+    if block_given?
+      begin
+        @@debug = true
+        puts
+        puts "-----------------"
+        yield
+      ensure
+        @@debug = false
+        puts "-----------------"
+      end
+    else
+      @@debug = ! @@debug
+    end
+  end
+
   def self.new_elisp_variable
     VARIABLE_PREFIX + @@current_elisp_variable_num.succ!
   end
@@ -37,7 +53,7 @@ module Relisp
   end
 
   def self.method_missing(function, *args)
-    elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.print}.join(' ') + ')')
+    elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.to_elisp.print}.join(' ') + ')')
   end
 
   def self.elisp_execute(code)

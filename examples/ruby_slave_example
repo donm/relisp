@@ -5,11 +5,11 @@ $:.unshift File.join(File.dirname(__FILE__), "../lib") # add ../lib to the Ruby 
 require 'relisp'
 
 def relisp_sample_ruby_method1
+#  Relisp.elisp_eval("(+ 1 3)")
+  Relisp.+(1, 4)
 
 #  val = Relisp.elisp_eval('"a string\n"')
 #  return val
-
-  Relisp.elisp_eval("(+ 1 3)")
 #  return val.to_i + 3 
 #  return 3.14
 #  return [1,2,3]
@@ -17,12 +17,14 @@ end
 
 def relisp_sample_ruby_method2
 
+  buffer = Relisp.elisp_eval '(create-file-buffer "arst")'
+  buffer.name
+
 #  val = Relisp.elisp_eval('"a string"')
 #  val = Relisp.elisp_eval('2')
-  buffer = Relisp.elisp_eval '(create-file-buffer "arst")'
 #  val = buffer.name
-#   val = Relisp.elisp_eval('(setq a 3)')
-#   val = Relisp.elisp_eval('(+ a 2)')
+#  val = Relisp.elisp_eval('(setq a 3)')
+#  val = Relisp.elisp_eval('(+ a 2)')
 
 #  val = Relisp.elisp_eval('(+ 1 3)')
 #  return val

@@ -26,7 +26,7 @@ class TestRelisp < Test::Unit::TestCase
   end
 
   def test_method_missing
-    assert_equal 6, Relisp.+('1', '2', '3')
+    assert_equal 6, Relisp.+(1, 2, 3)
   end
 
 #   def test_emacs_as_slave

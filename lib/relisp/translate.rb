@@ -64,8 +64,8 @@ module Relisp
       elisp_eval( "(setq #{keys_var} nil)" )
       elisp_eval( "(setq #{vals_var} nil)" )
       elisp_eval( "(maphash (lambda (key val)
-                                           (setq #{keys_var} (append #{keys_var} (list key)))
-                                           (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
+                              (setq #{keys_var} (append #{keys_var} (list key)))
+                              (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
       keys = elisp_eval( "#{keys_var}" )
       vals = elisp_eval( "#{vals_var}" )
       keys ||= []
@@ -92,46 +92,67 @@ module Relisp
     
   end
 
-class Buffer
-  def initialize(elisp_variable)
-    @elisp_variable = elisp_variable
+  module RelispType
+    def to_elisp
+      self
+    end
   end
 
-  def to_s
+  class Buffer
+    include RelispType
+
+    def initialize(elisp_variable)
+      @elisp_variable = elisp_variable
+    end
+
+    def to_s
+    end
+
+    def name
+      Relisp.elisp_eval "(buffer-name #{@elisp_variable})"
+    end
+
+
   end
 
-  def name
-    Relisp.elisp_eval "(buffer-name #{@elisp_variable})"
+  class Cons < Array
+    include RelispType
+    def print
+      print_string = '(list '
+      each do |elt|
+        print_string << elt.to_elisp.print << ' '
+      end
+      print_string << ')'
+    end
   end
 
-end
-
-class Cons < Array
-  def print
-    '(' + join(' ') + ')'
+  class Vector < Array
+    include RelispType
+    def print
+      print_string = '[ '
+      each do |elt|
+        print_string << elt.to_elisp.print << ' '
+      end
+      print_string << ']'
+    end
   end
-end
 
-class Vector < Array
-  def print
-    '[' + join(' ') + ']'
+  class String < String
+    include RelispType
+    def print
+      self.dump
+    end
   end
-end
 
-class String < String
-  def print
-    self
+  class Character < String
+    include RelispType
+    def print
+      self[0].to_s
+    end
   end
-end
 
-class Character < String
-  def print
-    self[0].to_s
-  end
-end
-
-Float   = (3.14159).class
-Integer = 42.class
+  Float   = (3.14159).class
+  Integer = 42.class
 end
 
 ### Programming Types
@@ -191,8 +212,6 @@ class Object
 end
 
 
-
-
 # (setq bar (lambda nil
 #            (+ 1 2)))
 # => (lambda nil (+ 1 2))
@@ -224,7 +243,7 @@ end
 
 # (type-of (symbol-function 'foo))
 # => cons
- 
+
 # (type-of (symbol-function 'car))
 # => subr
 
