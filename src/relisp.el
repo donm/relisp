@@ -1,8 +1,5 @@
 ;;; first, some string functions
 
-(defun puts (str)
-  (message (prin1-to-string str)))
-
 (defun trim-leading-whitespace (str)
   "Remove leading whitespace characters from STR."
   (let ((s (if (symbolp str)(symbol-name str) str))

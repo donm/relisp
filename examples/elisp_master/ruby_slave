@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.join(File.dirname(__FILE__), "../lib") # add ../lib to the Ruby library path 
+
+require 'relisp'
+
+slave = Relisp::RubySlave.new
+
+def relisp_sample_ruby_method1
+  #  Relisp.elisp_eval("(+ 1 3)")
+  elisp_eval("(+ 1 5)")
+
+  #  val = Relisp.elisp_eval('"a string\n"')
+  #  return val
+  #  return val.to_i + 3 
+  #  return 3.14
+  #  return [1,2,3]
+end
+
+def relisp_sample_ruby_method2
+
+  buffer = elisp_eval '(create-file-buffer "arst")'
+  buffer.name
+
+  #  val = Relisp.elisp_eval('"a string"')
+  #  val = Relisp.elisp_eval('2')
+  #  val = buffer.name
+  #  val = Relisp.elisp_eval('(setq a 3)')
+  #  val = Relisp.elisp_eval('(+ a 2)')
+
+  #  val = Relisp.elisp_eval('(+ 1 3)')
+  #  return val
+
+end
+
+slave.start

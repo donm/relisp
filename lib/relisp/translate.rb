@@ -22,74 +22,76 @@ module Relisp
   #xxx Byte-Code Type::      A function written in Lisp, then compiled.
   # Autoload Type::       A type used for automatically loading seldom-used
   #                         functions.
-  
-  def self.read(object_string, object_variable = nil)
-    if object_variable
-      elisp_type    = elisp_execute "(type-of #{object_variable})"
-#      object_string = elisp_execute(object_variable)
-    else
-      elisp_type = elisp_execute "(type-of #{object_string})"
-    end 
 
-    case elisp_type
-    when 'integer'
-      object_string.to_i
-    when 'float'
-      object_string.to_f
-    when 'symbol'
-      if object_string == 'nil'
-        nil
+  class Slave
+    
+    def read(object_string, object_variable = nil)
+      if object_variable
+        elisp_type    = elisp_execute "(type-of #{object_variable})"
+        #      object_string = elisp_execute(object_variable)
       else
-        object_string.to_sym
-      end
-    when 'cons'
-      size = elisp_eval( "(length #{object_variable})" )
-      object_array = Array.new
-      size.times do |i|
-        object_array << elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
-      end
-      Relisp::Cons.new(object_array)
-    when 'string'
-      Relisp::String.new(eval(object_string))
-    when 'vector'
-      size = elisp_eval( "(length #{object_variable})" )
-      object_array = Array.new
-      size.times do |i|
-        object_array << elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
-      end
-      Relisp::Vector.new(object_array)
-    when 'hash-table'
-      keys_var = new_elisp_variable
-      vals_var = new_elisp_variable
-      elisp_eval( "(setq #{keys_var} nil)" )
-      elisp_eval( "(setq #{vals_var} nil)" )
-      elisp_eval( "(maphash (lambda (key val)
+        elisp_type = elisp_execute "(type-of #{object_string})"
+      end 
+
+      case elisp_type
+      when 'integer'
+        object_string.to_i
+      when 'float'
+        object_string.to_f
+      when 'symbol'
+        if object_string == 'nil'
+          nil
+        else
+          object_string.to_sym
+        end
+      when 'cons'
+        size = elisp_eval( "(length #{object_variable})" )
+        object_array = Array.new
+        size.times do |i|
+          object_array << elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
+        end
+        Relisp::Cons.new(object_array)
+      when 'string'
+        # need to use Kernel prefix because ElispSlave#eval is redefined
+        Relisp::String.new(Kernel.eval(object_string))
+      when 'vector'
+        size = elisp_eval( "(length #{object_variable})" )
+        object_array = Array.new
+        size.times do |i|
+          object_array << elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
+        end
+        Relisp::Vector.new(object_array)
+      when 'hash-table'
+        keys_var = new_elisp_variable
+        vals_var = new_elisp_variable
+        elisp_eval( "(setq #{keys_var} nil)" )
+        elisp_eval( "(setq #{vals_var} nil)" )
+        elisp_eval( "(maphash (lambda (key val)
                               (setq #{keys_var} (append #{keys_var} (list key)))
                               (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
-      keys = elisp_eval( "#{keys_var}" )
-      vals = elisp_eval( "#{vals_var}" )
-      keys ||= []
-      hash = Hash.new
-      keys.each_index do |i|
-        hash[keys[i]] = vals[i]
+        keys = elisp_eval( "#{keys_var}" )
+        vals = elisp_eval( "#{vals_var}" )
+        keys ||= []
+        hash = Hash.new
+        keys.each_index do |i|
+          hash[keys[i]] = vals[i]
+        end
+        hash
+        ### Editing Types
+        ### Buffer Type::         The basic object of editing.
+        # Marker Type::         A position in a buffer.
+        # Window Type::         Buffers are displayed in windows.
+        # Frame Type::		Windows subdivide frames.
+        # Window Configuration Type::   Recording the way a frame is subdivided.
+        # Frame Configuration Type::    Recording the status of all frames.
+        # Process Type::        A process running on the underlying OS.
+        # Stream Type::         Receive or send characters.
+        # Keymap Type::         What function a keystroke invokes.
+        # Overlay Type::        How an overlay is represented.    case elisp_type
+      when 'buffer'
+        Relisp::Buffer.new(object_variable, self)
       end
-      hash
-  ### Editing Types
-  ### Buffer Type::         The basic object of editing.
-  # Marker Type::         A position in a buffer.
-  # Window Type::         Buffers are displayed in windows.
-  # Frame Type::		Windows subdivide frames.
-  # Window Configuration Type::   Recording the way a frame is subdivided.
-  # Frame Configuration Type::    Recording the status of all frames.
-  # Process Type::        A process running on the underlying OS.
-  # Stream Type::         Receive or send characters.
-  # Keymap Type::         What function a keystroke invokes.
-  # Overlay Type::        How an overlay is represented.    case elisp_type
-    when 'buffer'
-      Relisp::Buffer.new(object_variable)
     end
-
-    
   end
 
   module RelispType
@@ -101,18 +103,17 @@ module Relisp
   class Buffer
     include RelispType
 
-    def initialize(elisp_variable)
+    def initialize(elisp_variable, slave)
       @elisp_variable = elisp_variable
+      @slave = slave
     end
 
     def to_s
     end
 
     def name
-      Relisp.elisp_eval "(buffer-name #{@elisp_variable})"
+      @slave.elisp_eval "(buffer-name #{@elisp_variable})"
     end
-
-
   end
 
   class Cons < Array
@@ -154,6 +155,7 @@ module Relisp
   Float   = (3.14159).class
   Integer = 42.class
 end
+
 
 ### Programming Types
 # Integer Type::        Numbers without fractional parts.

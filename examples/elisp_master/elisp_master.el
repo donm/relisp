@@ -1,9 +1,5 @@
 ;; TODO:
-;; when you to_elisp an array, to_elisp each element?
-;; convert lisp objects to ruby and back
-
 ;; catch emacs errors
-;; send messages (both ways) to a buffer *relisp* or something
 ;; lock ruby variables
 ;; def variables in elisp
 ;; document elisp variables and functions; interactive functions
@@ -13,6 +9,9 @@
 ;; check if ruby is alive before returning result
 ;; functions
 ;; tests
+
+(defun puts (str)
+  (message (prin1-to-string str)))
 
 (progn
   (relisp-stop-slave)
@@ -25,7 +24,7 @@
 (puts (+ 1 (ruby-eval "1 + 2 + 3")))
 (puts (ruby-eval "'ruby sentence'.reverse"))
 
-(puts (ruby-eval "Relisp.concat('Don ', 'March')"))
+(puts (ruby-eval "concat('Don ', 'March')"))
 
 (puts (ruby-eval "Relisp.+(1, 2)"))
 (puts (ruby-eval "Relisp.elisp_eval('(+ 1 2)')"))
