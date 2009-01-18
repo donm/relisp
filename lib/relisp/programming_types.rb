@@ -49,9 +49,16 @@ module Relisp
     def self.from_elisp(object)
       if object[:string] == 'nil'
         nil
+      elsif object[:string] == 't'
+        true
       else
         object[:string].to_sym
       end
+    end
+
+    def to_elisp
+#      self.to_s
+      "'" + self.to_s
     end
   end
 
@@ -68,7 +75,7 @@ module Relisp
     def to_elisp
       print_string = '(list '
       each do |elt|
-        print_string << elt.to_elisp.print << ' '
+        print_string << elt.to_elisp << ' '
       end
       print_string << ')'
     end
@@ -98,7 +105,7 @@ module Relisp
     def to_elisp
       print_string = '[ '
       each do |elt|
-        print_string << elt.to_elisp.print << ' '
+        print_string << elt.to_elisp << ' '
       end
       print_string << ']'
     end
@@ -125,6 +132,15 @@ module Relisp
       end
       hash
     end
+
+    def to_elisp
+      lisp =  "(progn \n"
+      lisp << "  (let ((--temp--relisp--variable (make-hash-table))) \n"
+      each_pair do |key, val|
+        lisp << "    (puthash #{key.to_elisp} #{val.to_elisp} --temp--relisp--variable) \n"
+      end
+      lisp << "--temp--relisp--variable))"
+    end
   end
 
 end
@@ -138,7 +154,11 @@ class Array
   end
 
   def elisp_type
-    @elisp_type ||= @@default_elisp_type
+    @elisp_type || @@default_elisp_type
+  end
+
+  def arst
+    @@default_elisp_type
   end
 
   def elisp_type=(type)
@@ -148,6 +168,26 @@ class Array
   def to_elisp
     elisp_type.new(self).to_elisp
   end
+end
+
+
+class NilClass
+  def to_elisp
+    "nil"
+  end
+end
+
+class TrueClass
+  def to_elisp
+    "t"
+  end
+end
+
+class FalseClass
+  def to_elisp
+    nil.to_elisp
+  end
+
 end
 
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'test_slaves'
-require 'test_translate'
+require 'test/unit'
+
+Dir['**/*test*.rb'].each { |tc| require tc }
