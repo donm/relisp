@@ -52,8 +52,17 @@
   (relisp-stop-slave)
   (setq relisp-transaction-list nil)
   (setq relisp-transaction-number 0)
-  (setq relisp-slave-process 
-	(start-process relisp-slave-name nil relisp-ruby-slave-path))
+  (if (and (boundp 'relisp-ruby-slave-path) (file-exists-p relisp-ruby-slave-path))
+      (setq relisp-slave-process (start-process relisp-slave-name nil "ruby" relisp-ruby-slave-path))
+    (setq relisp-slave-process (start-process relisp-slave-name nil
+					      "ruby" 
+					      "-x"))
+    (process-send-string relisp-slave-name 
+			 (concat "#! ruby \n"
+				 "$:.unshift File.join(File.dirname('" (symbol-file 'relisp-transaction-list) "'), '../lib')\n"
+				 "require 'relisp'\n" 
+				 "Relisp::RubySlave.new.start\n"
+				 "__END__\n")))
   (setq relisp-tq 
 	(tq-create relisp-slave-process))
   (makunbound 'relisp-question-code)
@@ -98,12 +107,12 @@
       (relisp-receiver nil (relisp-accept-process-output)))))
 
 (defun relisp-accept-process-output nil
-  (setq input "")
-  (setq input-line "")
-  (while (null (string-match relisp-endofmessage-regexp input-line))
-     (setq input-line (read-from-minibuffer ""))
-     (setq input (concat input input-line)))
-  input)
+  (setq output "")
+  (setq output-line "")
+  (while (null (string-match relisp-endofmessage-regexp output-line))
+     (setq output-line (read-from-minibuffer ""))
+     (setq output (concat output output-line)))
+  output)
 
 (defun relisp-process-ruby-response nil
   (if (boundp 'relisp-ruby-return)
@@ -176,7 +185,7 @@
   (message "(prompt for error code)")
   (setq relisp-error-code (read-from-minibuffer ""))
   (relisp-update-endofmessage-regexp)
-  (while (equal 1 1) ;; loop is a CL function, I guess
+  (while (equal 1 1) ;; loop is only a CL function, I guess
    (setq input "")
    (setq input-line "")
    (while (null (string-match relisp-question-code (strip input-line)))
@@ -187,4 +196,4 @@
    (message (relisp-form-answer relisp-eval-result))))
      
 
-
+(provide 'relisp)

@@ -6,5 +6,6 @@
 #
 
 require 'relisp/slaves'
-require 'relisp/translate'
+require 'relisp/programming_types'
+require 'relisp/editing_types'
 

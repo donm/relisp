@@ -1,6 +1,4 @@
-#!/usr/bin/env ruby
-
-$:.unshift File.join(File.dirname(__FILE__), "../lib") # add ../lib to the Ruby library path 
+$:.unshift File.join(File.dirname(__FILE__), "../../lib") # add ../lib to the Ruby library path 
 
 require 'relisp'
 

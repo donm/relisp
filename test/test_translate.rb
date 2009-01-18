@@ -14,9 +14,9 @@ class TestTranslate < Test::Unit::TestCase
   def teardown
   end
 
-   def test_integer
-     assert_equal 3, @emacs.elisp_eval( "(+ 1 2)" )
-   end
+  def test_integer
+    assert_equal 3, @emacs.elisp_eval( "(+ 1 2)" )
+  end
 
   def test_float
     assert_equal 2.5, @emacs.elisp_eval( "(/ 5.0 2)" )
@@ -72,6 +72,7 @@ class TestTranslate < Test::Unit::TestCase
     assert_equal Relisp::Buffer, buffer.class
     buffer_names = @emacs.elisp_eval( '(buffer-list)' ).map { |buffer| buffer.name } 
     assert buffer_names.include?(test_buffer_name)
+    assert_equal :buffer, @emacs.eval("(type-of #{buffer.to_elisp})")
   end
   
 end  

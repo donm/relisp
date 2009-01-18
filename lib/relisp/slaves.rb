@@ -16,36 +16,56 @@ module Relisp
       VARIABLE_PREFIX + @current_elisp_variable_num.succ!
     end
 
+    def read_elisp(object_string, object_variable = nil)
+      if object_variable
+        elisp_type = elisp_execute "(type-of #{object_variable})"
+      else
+        elisp_type = elisp_execute "(type-of #{object_string})"
+      end 
+
+      object_info = {
+        :string   => object_string,
+        :variable => object_variable, 
+        :slave    => self, 
+      }
+
+      # one more reason to love Ruby:
+      (Kernel.eval elisp_type.split("-").map { |a| a.capitalize }.join).from_elisp(object_info)
+      #           'hash-table'['hash', 'table']['Hash', 'Table'] 'HashTable'
+    end
+
     def elisp_eval(code)
       elisp_result = elisp_execute(code)
       elisp_object_variable = new_elisp_variable
       elisp_execute("(setq #{elisp_object_variable} relisp-eval-result)")
-      read(elisp_result, elisp_object_variable)
+      result = read_elisp(elisp_result, elisp_object_variable)
+      elisp_execute("(makunbound '#{elisp_object_variable})")
+      return result
     end
 
     def method_missing(function, *args)
-      elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.to_elisp.print}.join(' ') + ')')
+      elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.to_elisp}.join(' ') + ')')
     end
 
     def elisp_execute(code)
       write_to_emacs code
       write_to_emacs QUESTION_CODE
 
-      input = ''
-      input_line = read_from_emacs
-      until input_line.strip =~ ENDOFMESSAGE_REGEXP
-        if input == QUESTION_CODE
-          write_to_emacs (eval input, @local_binding).to_elisp.print
+      output = ''
+      output_line = read_from_emacs
+      until output_line.strip =~ ENDOFMESSAGE_REGEXP
+        if output == QUESTION_CODE
+          write_to_emacs (eval output, @local_binding).to_elisp
           write_to_emacs ANSWER_CODE
-          input = ''
+          output = ''
         else
-          input << input_line
+          output << output_line
         end
-        input_line = read_from_emacs
+        output_line = read_from_emacs
       end
 
-      input.gsub!(/\n\z/, '')
-      return input
+      output.gsub!(/\n\z/, '')
+      return output
     end
     
     def pass_constants
@@ -81,7 +101,7 @@ module Relisp
           end
           code.gsub!(/\n\z/, '')
 
-          write_to_emacs (eval code, @local_binding).to_elisp.print
+          write_to_emacs (eval code, @local_binding).to_elisp
           write_to_emacs ANSWER_CODE
         end
       rescue => dag_yo
@@ -104,11 +124,13 @@ module Relisp
 
     def initialize
       super
-      emacs_command =    "emacs --batch "
-      emacs_command << "-l ../src/relisp.el "
-      emacs_command << "--eval '(relisp-become-slave)' "
-      emacs_command << "--no-site-file "
-      emacs_command << "2>&1"
+      elisp_path = File.expand_path(File.join(File.dirname(__FILE__), '../../src/relisp.el'))
+
+      emacs_command =  "emacs --batch"
+      emacs_command << " -l #{elisp_path}"
+      emacs_command << " --eval '(relisp-become-slave)'"
+      emacs_command << " --no-site-file"
+      emacs_command << " 2>&1"
       @emacs_pipe = IO.popen(emacs_command, "w+")
       until read_from_emacs.strip == "SEND CONSTANTS"
       end
@@ -123,11 +145,11 @@ module Relisp
     end
     
     def read_from_emacs
-      input = @emacs_pipe.gets
+      output = @emacs_pipe.gets
       if @debug
-        puts "=> " + input unless input =~ ENDOFMESSAGE_REGEXP
+        puts "=> " + output unless output =~ ENDOFMESSAGE_REGEXP
       end
-      return input
+      return output
     end
 
     def debug=(val)

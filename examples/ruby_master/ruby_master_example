@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
-$:.unshift File.join(File.dirname(__FILE__), "../lib") # add ../lib to the Ruby library path 
+$:.unshift File.join(File.dirname(__FILE__), "../../lib") # add ../lib to the Ruby library path 
 
 require 'relisp'
 
 emacs = Relisp::ElispSlave.new
 
-puts emacs.eval "(+ 1 2)"
-puts emacs.*(5,2)
-puts (emacs.elisp_eval "(concat \"Don \" \"March\")")
+puts emacs.eval("(+ 1 2)")
+#puts emacs.*(5,2)
+#puts (emacs.elisp_eval "(concat \"Don \" \"March\")")
 

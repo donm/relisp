@@ -27,6 +27,10 @@ class TestSlaves < Test::Unit::TestCase
     assert_equal 6, @emacs.+(1, 2, 3)
   end
 
+  def test_eval
+    assert_equal 3, @emacs.eval("(+ 1 2)")
+  end
+
 #   def test_emacs_as_slave
 #   end
 

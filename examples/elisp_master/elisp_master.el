@@ -13,9 +13,15 @@
 (defun puts (str)
   (message (prin1-to-string str)))
 
+
 (progn
   (relisp-stop-slave)
-  (relisp-ruby-slave-path "../examples/ruby_slave_example")
+  (relisp-ruby-slave-path "ruby_slave")
+  (relisp-start-slave))
+
+(progn
+  (relisp-stop-slave)
+  (makunbound 'relisp-ruby-slave-path)
   (relisp-start-slave))
 
 (puts (ruby-eval "relisp_sample_ruby_method1"))

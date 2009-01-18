@@ -1,0 +1,188 @@
+class Object
+  def to_elisp
+    self.to_s
+  end
+end
+
+
+module Relisp
+  ### Programming Types
+
+  ### Integer Type::        Numbers without fractional parts.
+  ### Floating Point Type:: Numbers with fractional parts and with a large range.
+  #int# Character Type::      The representation of letters, numbers and
+  #           control characters.
+  ### Symbol Type::         A multi-use object that refers to a function,
+  #                       variable, or property list, and has a unique identity.
+  ### (Sequence Type)::       Both lists and arrays are classified as sequences.
+  ### Cons Cell Type::      Cons cells, and lists (which are made from cons cells).
+  ### (Array Type)::          Arrays include strings and vectors.
+  ###   String Type::         An (efficient) array of characters.
+  ###   Vector Type::         One-dimensional arrays.
+  # Char-Table Type::     One-dimensional sparse arrays indexed by characters.
+  # Bool-Vector Type::    One-dimensional arrays of `t' or `nil'.
+  ### Hash Table Type::     Super-fast lookup tables.
+  #cons# Function Type::       A piece of executable code you can call from elsewhere.
+  #cons# Macro Type::          A method of expanding an expression into another
+  #                           expression, more fundamental but less pretty.
+  #xxx Primitive Function Type::     A function written in C, callable from Lisp.
+  #xxx Byte-Code Type::      A function written in Lisp, then compiled.
+  # Autoload Type::       A type used for automatically loading seldom-used
+  #                         functions.
+
+  Integer = 42.class
+  class Integer
+    def self.from_elisp(object)
+      object[:string].to_i
+    end
+  end
+
+  Float = (3.14).class
+  class Float
+    def self.from_elisp(object)
+      object[:string].to_f
+    end
+  end
+
+  Symbol = :flag.class
+  class Symbol
+    def self.from_elisp(object)
+      if object[:string] == 'nil'
+        nil
+      else
+        object[:string].to_sym
+      end
+    end
+  end
+
+  class Cons < Array
+    def self.from_elisp(object)
+      size = object[:slave].elisp_eval( "(length #{object[:variable]})" )
+      object_array = Array.new
+      size.times do |i|
+        object_array << object[:slave].elisp_eval( "(elt #{object[:variable]} #{i.to_elisp})" )
+      end
+      Relisp::Cons.new(object_array)
+    end
+
+    def to_elisp
+      print_string = '(list '
+      each do |elt|
+        print_string << elt.to_elisp.print << ' '
+      end
+      print_string << ')'
+    end
+  end
+
+  String = "words, words, words".class
+  class String
+    def self.from_elisp(object)
+      new(eval(object[:string]))
+    end
+
+    def to_elisp
+      self.dump
+    end
+  end
+
+  class Vector < Array
+    def self.from_elisp(object)
+      size = object[:slave].elisp_eval( "(length #{object[:variable]})" )
+      object_array = Array.new
+      size.times do |i|
+        object_array << object[:slave].elisp_eval( "(elt #{object[:variable]} #{i.to_elisp})" )
+      end
+      new(object_array)
+    end
+
+    def to_elisp
+      print_string = '[ '
+      each do |elt|
+        print_string << elt.to_elisp.print << ' '
+      end
+      print_string << ']'
+    end
+  end
+
+  HashTable = {:money => "power"}.class
+  class HashTable
+    def self.from_elisp(object)
+      slave = object[:slave]
+
+      keys_var = slave.new_elisp_variable
+      vals_var = slave.new_elisp_variable
+      slave.elisp_execute( "(setq #{keys_var} nil)" )
+      slave.elisp_execute( "(setq #{vals_var} nil)" )
+      slave.elisp_execute( "(maphash (lambda (key val)
+                              (setq #{keys_var} (append #{keys_var} (list key)))
+                              (setq #{vals_var} (append #{vals_var} (list val)))) #{object[:variable]})" )
+      keys = slave.elisp_eval( keys_var )
+      vals = slave.elisp_eval( vals_var )
+      keys ||= []
+      hash = Hash.new
+      keys.each_index do |i|
+        hash[keys[i]] = vals[i]
+      end
+      hash
+    end
+  end
+
+end
+
+
+class Array
+  @@default_elisp_type = Relisp::Cons
+
+  def self.default_elisp_type=(type)
+    @@default_elisp_type = type
+  end
+
+  def elisp_type
+    @elisp_type ||= @@default_elisp_type
+  end
+
+  def elisp_type=(type)
+    @elisp_type = type
+  end
+
+  def to_elisp
+    elisp_type.new(self).to_elisp
+  end
+end
+
+
+# (setq bar (lambda nil
+#            (+ 1 2)))
+# => (lambda nil (+ 1 2))
+
+# (type-of (car '(+ 1 2)))
+# => symbol
+
+# (type-of (car bar))
+# => symbol
+
+# (functionp bar)
+# => t
+
+# (functionp 'bar)
+# => nil
+
+# (funcall bar)
+# => 3
+
+# (prin1-to-string bar)
+# => "(lambda nil (+ 1 2))"
+
+# (defun foo nil
+#  (+ 1 2))
+# => foo
+
+# (functionp 'foo)
+# => t
+
+# (type-of (symbol-function 'foo))
+# => cons
+
+# (type-of (symbol-function 'car))
+# => subr
+
