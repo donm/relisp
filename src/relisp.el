@@ -97,14 +97,15 @@
 (defun relisp-send-to-ruby (message)
   (let ((tq-num (relisp-new-transaction-number)))
     (push tq-num relisp-transaction-list)
+;    (relisp-log (concat "---" (prin1-to-string relisp-transaction-list)))
     (if relisp-emacs-master-p
 	(progn
-	  (tq-enqueue relisp-tq (concat message "\n") relisp-endofmessage-regexp nil 'relisp-receiver)
+	  (tq-enqueue relisp-tq (concat message "\n") relisp-endofmessage-regexp tq-num 'relisp-receiver)
 	  (while (and (relisp-slave-alive-p) 
 		      (member tq-num relisp-transaction-list))
 	    (accept-process-output)))
       (message message)
-      (relisp-receiver nil (relisp-accept-process-output)))))
+      (relisp-receiver tq-num (relisp-accept-process-output)))))
 
 (defun relisp-accept-process-output nil
   (setq output "")
@@ -128,6 +129,7 @@
   (if (relisp-slave-alive-p)
       (progn
 	(relisp-send-to-ruby message)
+;;;	(relisp-log (concat "---" (prin1-to-string relisp-transaction-list)))
 	(relisp-process-ruby-response))
     nil))
 
@@ -142,23 +144,24 @@
   (concat code "\n" relisp-answer-code))
 
 (defun relisp-log (text)
-  (get-buffer-create relisp-buffer-name)
-  (unless (string-match relisp-endofmessage-regexp (strip text))
-    (set-buffer relisp-buffer-name)
-    (end-of-buffer)
-    (insert text "\n")))
-
+  (if relisp-emacs-master-p
+      (progn
+	(get-buffer-create relisp-buffer-name)
+	(unless (string-match relisp-endofmessage-regexp (strip text))
+	  (set-buffer relisp-buffer-name)
+	  (end-of-buffer)
+	  (insert text "\n")))))
 
 (defun ruby-eval (ruby-code)
-  (relisp-log (concat "relisp> " ruby-code))
+  (relisp-log (concat "lisp?> " ruby-code))
   (relisp-contact-ruby (relisp-form-question ruby-code)))
 
 (defun relisp-answer-ruby (question)
   (setq question (strip (car (split-string question relisp-question-code))))
-  (relisp-log (concat "?=> " question))
+  (relisp-log (concat "ruby?> " question))
   (setq question (read question))
   (setq relisp-eval-result (eval question))
-  (relisp-log (concat "relisp> " (prin1-to-string relisp-eval-result)))
+  (relisp-log (concat "lisp=> " (prin1-to-string relisp-eval-result)))
   (relisp-contact-ruby (relisp-form-answer relisp-eval-result)))
 
 (defun relisp-receiver (closure message)
@@ -166,7 +169,8 @@
   (if (string-match relisp-question-code message)
       (relisp-answer-ruby message)
     (setq return-val (strip (car (split-string message relisp-answer-code))))
-    (relisp-log (concat "=> " return-val)))
+    (relisp-log (concat "ruby=> " return-val "\n")))
+;  (setq relisp-transaction-list (delete closure relisp-transaction-list))
   (pop relisp-transaction-list)
   ;; if a deeper (recursive) level has set this, leave it alone
   (unless (boundp 'relisp-ruby-return)
@@ -194,6 +198,11 @@
    (setq question (read (strip (car (split-string input relisp-question-code)))))
    (setq relisp-eval-result (eval question))
    (message (relisp-form-answer relisp-eval-result))))
-     
+
+(defun relisp-to-ruby (object)
+  (let ((var (read (ruby-eval "new_elisp_variable"))))
+    (set var object)
+    (concat "elisp_eval('" (prin1-to-string var) "')")))
 
 (provide 'relisp)
+

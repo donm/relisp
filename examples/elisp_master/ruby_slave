@@ -31,4 +31,8 @@ def relisp_sample_ruby_method2
 
 end
 
+def relisp_sample_ruby_method3
+  elisp_eval('(ruby-eval "3")')
+end   
+
 slave.start

@@ -29,6 +29,7 @@ class TestProgrammingTypes < Test::Unit::TestCase
     plus = @emacs.elisp_eval( "'+" )
     assert_equal :+, plus
     assert_equal 3, @emacs.elisp_eval( "(funcall #{plus.to_elisp} 1 2)" )
+    assert_equal 3, @emacs.elisp_eval( "(#{plus} 1 2)" )
 
     nil_val = @emacs.eval( 'nil' )
     assert_nil nil_val
@@ -47,6 +48,7 @@ class TestProgrammingTypes < Test::Unit::TestCase
     assert_equal [4, 5], result[3]
     list = [1,2,'a',[4,5]]
     assert @emacs.elisp_eval( "(equal (list 1 2 \"a\" (list 4 5)) #{list.to_elisp})" )
+    assert_equal 1, @emacs.elisp_eval( "(car #{list.to_elisp})" )
   end
 
   def test_string
@@ -66,19 +68,22 @@ class TestProgrammingTypes < Test::Unit::TestCase
     assert @emacs.elisp_eval( "(equal [1 2 \"a\" (list 4 5)] #{vect.to_elisp})" )
     Array.default_elisp_type=Relisp::Vector
     assert @emacs.elisp_eval( "(equal [1 2 \"a\" [4 5]] #{vect.to_elisp})" )
+    
+    vect = (1..100).to_a
+    assert_equal vect, @emacs.elisp_eval( vect.to_elisp )
   end
 
   def test_hash_table
     @emacs.elisp_eval( '(setq ht (make-hash-table))' )
-    @emacs.elisp_eval( '(puthash \'first "john" ht)' )
+    @emacs.elisp_eval( '(puthash "first" "john" ht)' )
     @emacs.elisp_eval( '(puthash \'last "doe" ht)' )
     @emacs.elisp_eval( '(setq subht (make-hash-table))' )
-    @emacs.elisp_eval( '(puthash \'first "john" subht)' )
+    @emacs.elisp_eval( '(puthash "first" "john" subht)' )
     @emacs.elisp_eval( '(puthash \'last "doe" subht)' )
     @emacs.elisp_eval( '(puthash \'sub subht ht)' )
     hash = @emacs.elisp_eval( 'ht' )
     ruby_hash = Hash.new
-    ruby_hash[:first] = 'john'
+    ruby_hash["first"] = 'john'
     ruby_hash[:last] = 'doe'
     copy = ruby_hash.dup
     ruby_hash[:sub] = copy

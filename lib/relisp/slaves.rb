@@ -17,6 +17,7 @@ module Relisp
     end
 
     def read_elisp(object_string, object_variable = nil)
+
       if object_variable
         elisp_type = elisp_execute "(type-of #{object_variable})"
       else
@@ -28,16 +29,16 @@ module Relisp
         :variable => object_variable, 
         :slave    => self, 
       }
-
       # one more reason to love Ruby:
       (Kernel.eval elisp_type.split("-").map { |a| a.capitalize }.join).from_elisp(object_info)
       #           'hash-table'['hash', 'table']['Hash', 'Table'] 'HashTable'
+
     end
 
     def elisp_eval(code)
-      elisp_result = elisp_execute(code)
       elisp_object_variable = new_elisp_variable
-      elisp_execute("(setq #{elisp_object_variable} relisp-eval-result)")
+      elisp_result = elisp_execute("(setq #{elisp_object_variable} #{code})")
+
       result = read_elisp(elisp_result, elisp_object_variable)
       elisp_execute("(makunbound '#{elisp_object_variable})")
       return result
@@ -127,9 +128,9 @@ module Relisp
       elisp_path = File.expand_path(File.join(File.dirname(__FILE__), '../../src/relisp.el'))
 
       emacs_command =  "emacs --batch"
+      emacs_command << " --no-site-file"
       emacs_command << " -l #{elisp_path}"
       emacs_command << " --eval '(relisp-become-slave)'"
-      emacs_command << " --no-site-file"
       emacs_command << " 2>&1"
       @emacs_pipe = IO.popen(emacs_command, "w+")
       until read_from_emacs.strip == "SEND CONSTANTS"
@@ -139,7 +140,7 @@ module Relisp
 
     def write_to_emacs(code)
       if @debug
-        puts "relisp> " + code unless code =~ ENDOFMESSAGE_REGEXP
+        puts "ruby> " + code unless code =~ ENDOFMESSAGE_REGEXP
       end
       @emacs_pipe.puts code
     end
@@ -147,7 +148,7 @@ module Relisp
     def read_from_emacs
       output = @emacs_pipe.gets
       if @debug
-        puts "=> " + output unless output =~ ENDOFMESSAGE_REGEXP
+        puts "lisp> " + output unless output =~ ENDOFMESSAGE_REGEXP
       end
       return output
     end

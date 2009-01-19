@@ -13,38 +13,33 @@
 (defun puts (str)
   (message (prin1-to-string str)))
 
-
 (progn
   (relisp-stop-slave)
   (relisp-ruby-slave-path "ruby_slave")
   (relisp-start-slave))
+
+(puts (ruby-eval "relisp_sample_ruby_method1"))
+(puts (ruby-eval "relisp_sample_ruby_method2"))
+(puts (ruby-eval "relisp_sample_ruby_method3"))
 
 (progn
   (relisp-stop-slave)
   (makunbound 'relisp-ruby-slave-path)
   (relisp-start-slave))
 
-(puts (ruby-eval "relisp_sample_ruby_method1"))
-(puts (ruby-eval "relisp_sample_ruby_method2"))
-
 (puts (+ 1 (ruby-eval "1 + 2 + 3")))
 (puts (ruby-eval "'ruby sentence'.reverse"))
+(puts (ruby-eval "elisp_eval('(+ 1 2)')"))
 
-(puts (ruby-eval "concat('Don ', 'March')"))
+(ruby-eval (concat (relisp-to-ruby 3) ".succ"))
+(setq vect [1 2 3 4 5 1 2 3 4 1 23 4])
+(puts (ruby-eval (relisp-to-ruby vect)))
 
-(puts (ruby-eval "Relisp.+(1, 2)"))
-(puts (ruby-eval "Relisp.elisp_eval('(+ 1 2)')"))
+(puts (ruby-eval "3"))
+(puts (ruby-eval "elisp_eval('(ruby-eval \"3\")')"))
 
-
-
-;;(ruby-eval (concat "Relisp.read " (prin1-to-string (prin1-to-string (ruby-eval "elisp_eval('a'.to_elisp.print)" )))))
-;;(puts (ruby-eval "(Relisp.read elisp_eval('A'.to_elisp.print)).class" ))
-
-;;(message (concat "Relisp.read " (ruby-eval "Relisp.elisp_eval('(create-file-buffer \"aaaa\" )')")))
-
-;; (ruby-eval "a = [1, 2]")
-;; (ruby-eval "a.elisp_type = Relisp::Array")
-;; (puts (ruby-eval "a"))
-;;(puts (elt (ruby-eval "a") 0))
-
+(setq str "a couple of words")
+(puts (ruby-eval (concat (relisp-to-ruby str) ".split")))
+(puts (ruby-eval "['a', 'couple', 'of', 'words']"))
+(car (ruby-eval (concat (relisp-to-ruby str) ".split")))
 

@@ -28,6 +28,10 @@ class TestSlaves < Test::Unit::TestCase
 
   def test_eval
     assert_equal 3, @emacs.eval("(+ 1 2)")
+
+    @emacs.debug do
+      puts @emacs.elisp_execute('(ruby-eval "1+3")')
+    end
   end
 
 #   def test_emacs_as_slave
