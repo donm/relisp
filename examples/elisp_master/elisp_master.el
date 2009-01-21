@@ -12,7 +12,7 @@
 
 (progn
   (relisp-stop-slave)
-  (relisp-ruby-slave-path "ruby_slave")
+  (setq relisp-ruby-slave-path "ruby_slave")
   (relisp-start-slave))
 
 (puts (ruby-eval "relisp_sample_ruby_method1"))
@@ -39,6 +39,6 @@
 (puts (ruby-eval (concat (relisp-to-ruby str) ".split")))
 (car (ruby-eval (concat (relisp-to-ruby str) ".split")))
 
-(equal '(list 1 2 3) (ruby-eval "[1, 2, 3]"))
+(equal '(1 2 3) (ruby-eval "[1, 2, 3]"))
 (type-of (ruby-eval "{:name => 'don'}"))           
 

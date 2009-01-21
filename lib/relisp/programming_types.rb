@@ -1,14 +1,3 @@
-class Object
-  def to_elisp
-    self.to_s
-  end
-
-  def from_elisp(*args)
-    nil
-  end
-end
-
-
 module Relisp
   ### Programming Types
 
@@ -150,27 +139,13 @@ module Relisp
 end
 
 
-class Array
-  @@default_elisp_type = Relisp::Cons
-
-  def self.default_elisp_type=(type)
-    @@default_elisp_type = type
-  end
-
-  def elisp_type
-    @elisp_type || @@default_elisp_type
-  end
-
-  def arst
-    @@default_elisp_type
-  end
-
-  def elisp_type=(type)
-    @elisp_type = type
-  end
-
+class Object
   def to_elisp
-    elisp_type.new(self).to_elisp
+    self.to_s
+  end
+
+  def from_elisp(*args)
+    nil
   end
 end
 
@@ -191,8 +166,32 @@ class FalseClass
   def to_elisp
     nil.to_elisp
   end
-
 end
+
+# Modify the normal Array class so that an array can be converted to
+# either Relisp::Cons or Relisp::Vector.
+class Array
+  @@default_elisp_type = Relisp::Cons
+
+  # Set the type of the 
+  def self.default_elisp_type=(type)
+#    fail unless type.kind_of?(Array)
+    @@default_elisp_type = type
+  end
+
+  def elisp_type
+    @elisp_type || @@default_elisp_type
+  end
+
+  def elisp_type=(type)
+    @elisp_type = type
+  end
+
+  def to_elisp
+    elisp_type.new(self).to_elisp
+  end
+end
+
 
 
 # (setq bar (lambda nil
