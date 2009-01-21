@@ -1,14 +1,11 @@
 ;; TODO:
 ;; catch emacs errors
 ;; lock ruby variables
-;; def variables in elisp
+;; defvars
 ;; document elisp variables and functions; interactive functions
 ;; catch warnings
-;; check for more ruby errors
-;; elisp_eval("read") hangs
-;; check if ruby is alive before returning result
+;; check for ruby errors
 ;; functions
-;; tests
 
 (defun puts (str)
   (message (prin1-to-string str)))
@@ -40,6 +37,8 @@
 
 (setq str "a couple of words")
 (puts (ruby-eval (concat (relisp-to-ruby str) ".split")))
-(puts (ruby-eval "['a', 'couple', 'of', 'words']"))
 (car (ruby-eval (concat (relisp-to-ruby str) ".split")))
+
+(equal '(list 1 2 3) (ruby-eval "[1, 2, 3]"))
+(type-of (ruby-eval "{:name => 'don'}"))           
 

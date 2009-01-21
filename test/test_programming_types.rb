@@ -31,13 +31,13 @@ class TestProgrammingTypes < Test::Unit::TestCase
     assert_equal 3, @emacs.elisp_eval( "(funcall #{plus.to_elisp} 1 2)" )
     assert_equal 3, @emacs.elisp_eval( "(#{plus} 1 2)" )
 
-    nil_val = @emacs.eval( 'nil' )
+    nil_val = @emacs.elisp_eval( 'nil' )
     assert_nil nil_val
-    assert @emacs.eval( "(null #{nil_val.to_elisp})" )
+    assert @emacs.elisp_eval( "(null #{nil_val.to_elisp})" )
 
-    t_val = @emacs.eval( '(equal 1 1)' )
+    t_val = @emacs.elisp_eval( '(equal 1 1)' )
     assert_equal true, t_val
-    assert @emacs.eval( "(equal #{t_val.to_elisp} (equal 1 1))" )
+    assert @emacs.elisp_eval( "(equal #{t_val.to_elisp} (equal 1 1))" )
   end
 
   def test_cons
@@ -90,11 +90,29 @@ class TestProgrammingTypes < Test::Unit::TestCase
     assert_equal ruby_hash, hash
     assert_equal hash, @emacs.elisp_eval( hash.to_elisp )
 
+    @emacs.make_available(:hash, binding)
+
+    # when this elisp line:
+    ### (eval (read (trim-trailing-whitespace relisp-ruby-return)))))
+    # was this (i.e., without the eval:
+    ###       (read (trim-trailing-whitespace relisp-ruby-return))))
+    # this would return 'hash-table':
+    @emacs.elisp_eval( "(type-of #{hash.to_elisp})" )
+    # while this would return 'cons':
+    @emacs.elisp_eval( '(type-of (ruby-eval "hash"))' )
+    # So the second way is the only reliable way of testing.
+
+#    puts @emacs.elisp_eval( hash.to_elisp )
+#    puts @emacs.elisp_eval( '(ruby-eval "hash")' )
+
+
     # this returns false, even though the above is true--I don't
     # completely understand how emacs is comparing them.
-    # @emacs.elisp_eval( "(equal ht #{ruby_hash.to_elisp})" )
+    # puts @emacs.elisp_eval( "(equal ht #{ruby_hash.to_elisp})" )
   end
 
 end  
 
 
+# emacs calling ruby
+# ruby calling emacs calling ruby

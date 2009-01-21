@@ -2,6 +2,10 @@ class Object
   def to_elisp
     self.to_s
   end
+
+  def from_elisp(*args)
+    nil
+  end
 end
 
 

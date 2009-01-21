@@ -28,9 +28,9 @@
 
 ;;; now relisp stuff
 
+(defvar relisp-slave-name "relisp-slave")
 (defvar relisp-buffer-name "*Relisp*")
-
-(defvar relisp-transaction-list nil)
+(defvar relisp-emacs-master-p t)
 
 (defun relisp-slave-alive-p nil
   (and (boundp 'relisp-slave-process) 
@@ -42,16 +42,17 @@
 (defun relisp-ruby-slave-path (slave)
   (setq relisp-ruby-slave-path (expand-file-name slave)))
 
-(defvar relisp-slave-name "relisp-slave")
+(defun relisp-filter-slave-output (process output-line)
+  (setq relisp-ruby-output (concat relisp-ruby-output output-line)))
 
 (defun relisp-stop-slave nil
   (if (boundp 'relisp-slave-process)
       (delete-process relisp-slave-process)))
 
 (defun relisp-start-slave nil
+  (setq relisp-emacs-master-p t)
   (relisp-stop-slave)
-  (setq relisp-transaction-list nil)
-  (setq relisp-transaction-number 0)
+  (setq relisp-ruby-output "")
   (if (and (boundp 'relisp-ruby-slave-path) (file-exists-p relisp-ruby-slave-path))
       (setq relisp-slave-process (start-process relisp-slave-name nil "ruby" relisp-ruby-slave-path))
     (setq relisp-slave-process (start-process relisp-slave-name nil
@@ -59,28 +60,28 @@
 					      "-x"))
     (process-send-string relisp-slave-name 
 			 (concat "#! ruby \n"
-				 "$:.unshift File.join(File.dirname('" (symbol-file 'relisp-transaction-list) "'), '../lib')\n"
+				 "$:.unshift File.join(File.dirname('" (symbol-file 'relisp-slave-name) "'), '../lib')\n"
 				 "require 'relisp'\n" 
 				 "Relisp::RubySlave.new.start\n"
 				 "__END__\n")))
-  (setq relisp-tq 
-	(tq-create relisp-slave-process))
-  (makunbound 'relisp-question-code)
-  (makunbound 'relisp-answer-code)
-  (makunbound 'relisp-error-code)
-  (tq-enqueue relisp-tq "\n" "\n" 'relisp-answer-code   'relisp-start-slave-receiver)
-  (tq-enqueue relisp-tq "\n" "\n" 'relisp-question-code       'relisp-start-slave-receiver)
-  (tq-enqueue relisp-tq "\n" "\n" 'relisp-error-code 'relisp-start-slave-receiver)
-  (while (and (equal (process-status relisp-slave-process) 'run)
-	      (not (and (boundp 'relisp-question-code)
-			(boundp 'relisp-answer-code)
-			(boundp 'relisp-error-code))))
+  (set-process-filter relisp-slave-process 'relisp-filter-slave-output)
+  (relisp-write-to-ruby "")
+  (while (null (string-match "\n" relisp-ruby-output))
     (accept-process-output))
+  (setq relisp-answer-code (strip relisp-ruby-output))
+  (setq relisp-ruby-output "")
+  (relisp-write-to-ruby "")
+  (while (null (string-match "\n" relisp-ruby-output))
+    (accept-process-output))
+  (setq relisp-question-code (strip relisp-ruby-output))
+  (setq relisp-ruby-output "")
+  (relisp-write-to-ruby "")
+  (while (null (string-match "\n" relisp-ruby-output))
+    (accept-process-output))
+  (setq relisp-error-code (strip relisp-ruby-output))
+  (setq relisp-ruby-output "")
   (relisp-update-endofmessage-regexp)
   relisp-slave-process)
-
-(defun relisp-start-slave-receiver (variable output)
-  (set variable (strip output)))
 
 (defun relisp-update-endofmessage-regexp nil
   (setq relisp-endofmessage-regexp (concat "\\("      relisp-question-code 
@@ -89,49 +90,38 @@
                                            "\\)" 
 					   "[[:space:]]*")))
 
-(defun relisp-new-transaction-number nil
-  (if (boundp 'relisp-transaction-number) 
-      (setq relisp-transaction-number (+ 1 relisp-transaction-number))
-    (setq relisp-transaction-number 1)))
+;; (defun relisp-new-transaction-number nil
+;;   (if (boundp 'relisp-transaction-number) 
+;;       (setq relisp-transaction-number (+ 1 relisp-transaction-number))
+;;     (setq relisp-transaction-number 1)))
 
-(defun relisp-send-to-ruby (message)
-  (let ((tq-num (relisp-new-transaction-number)))
-    (push tq-num relisp-transaction-list)
-;    (relisp-log (concat "---" (prin1-to-string relisp-transaction-list)))
-    (if relisp-emacs-master-p
-	(progn
-	  (tq-enqueue relisp-tq (concat message "\n") relisp-endofmessage-regexp tq-num 'relisp-receiver)
-	  (while (and (relisp-slave-alive-p) 
-		      (member tq-num relisp-transaction-list))
-	    (accept-process-output)))
-      (message message)
-      (relisp-receiver tq-num (relisp-accept-process-output)))))
 
-(defun relisp-accept-process-output nil
+(defun relisp-write-to-ruby (message)
+  (if relisp-emacs-master-p
+      (process-send-string relisp-slave-process (concat message "\n"))
+    (message message)))
+
+(defun relisp-read-from-ruby nil
+  (if relisp-emacs-master-p
+      (relisp-accept-slave-output)
+    (relisp-accept-master-output)))
+    
+(defun relisp-accept-slave-output nil
+  (while (and (relisp-slave-alive-p) 
+	      (null (string-match relisp-endofmessage-regexp 
+				  relisp-ruby-output)))
+    (accept-process-output))
+  (let ((val relisp-ruby-output))
+    (setq relisp-ruby-output "")
+    val))
+
+(defun relisp-accept-master-output nil
   (setq output "")
   (setq output-line "")
   (while (null (string-match relisp-endofmessage-regexp output-line))
      (setq output-line (read-from-minibuffer ""))
      (setq output (concat output output-line)))
   output)
-
-(defun relisp-process-ruby-response nil
-  (if (boundp 'relisp-ruby-return)
-      (if (string-match (concat "\n?" relisp-error-code "[[:space:]]*") relisp-ruby-return)
-	  (concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
-	(if (relisp-slave-alive-p)
-	    (read (trim-trailing-whitespace relisp-ruby-return))
-	  ;; need to raise an error here
-	  (concat "relisp-slave is not alive.")))
-    "relisp-slave must have died"))
-
-(defun relisp-contact-ruby (message)
-  (if (relisp-slave-alive-p)
-      (progn
-	(relisp-send-to-ruby message)
-;;;	(relisp-log (concat "---" (prin1-to-string relisp-transaction-list)))
-	(relisp-process-ruby-response))
-    nil))
 
 (defun relisp-form-question (code)
   (unless (stringp code)
@@ -149,12 +139,23 @@
 	(get-buffer-create relisp-buffer-name)
 	(unless (string-match relisp-endofmessage-regexp (strip text))
 	  (set-buffer relisp-buffer-name)
-	  (end-of-buffer)
+	  (goto-char (point-max))
 	  (insert text "\n")))))
 
 (defun ruby-eval (ruby-code)
+  (if (and relisp-emacs-master-p (not (relisp-slave-alive-p)))
+      (relisp-start-slave))
   (relisp-log (concat "lisp?> " ruby-code))
-  (relisp-contact-ruby (relisp-form-question ruby-code)))
+  (relisp-write-to-ruby (relisp-form-question ruby-code))
+  (setq message (relisp-read-from-ruby))
+  (while (string-match relisp-question-code message)
+    (relisp-answer-ruby message)
+    (setq message (relisp-read-from-ruby)))
+  (setq relisp-ruby-return (strip (car (split-string message relisp-answer-code))))
+  (relisp-log (concat "ruby=> " relisp-ruby-return "\n"))
+  (if (string-match (concat "\n?" relisp-error-code "[[:space:]]*") relisp-ruby-return)
+      (concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
+    (eval (read (trim-trailing-whitespace relisp-ruby-return)))))
 
 (defun relisp-answer-ruby (question)
   (setq question (strip (car (split-string question relisp-question-code))))
@@ -162,21 +163,8 @@
   (setq question (read question))
   (setq relisp-eval-result (eval question))
   (relisp-log (concat "lisp=> " (prin1-to-string relisp-eval-result)))
-  (relisp-contact-ruby (relisp-form-answer relisp-eval-result)))
-
-(defun relisp-receiver (closure message)
-  (makunbound 'relisp-ruby-return)
-  (if (string-match relisp-question-code message)
-      (relisp-answer-ruby message)
-    (setq return-val (strip (car (split-string message relisp-answer-code))))
-    (relisp-log (concat "ruby=> " return-val "\n")))
-;  (setq relisp-transaction-list (delete closure relisp-transaction-list))
-  (pop relisp-transaction-list)
-  ;; if a deeper (recursive) level has set this, leave it alone
-  (unless (boundp 'relisp-ruby-return)
-    (setq relisp-ruby-return return-val)))
-
-(defvar relisp-emacs-master-p t)
+  (relisp-write-to-ruby (relisp-form-answer relisp-eval-result))
+  (pop relisp-transaction-list))
 
 (defun relisp-become-slave nil
   (setq relisp-emacs-master-p nil)
@@ -204,5 +192,4 @@
     (set var object)
     (concat "elisp_eval('" (prin1-to-string var) "')")))
 
-(provide 'relisp)
 

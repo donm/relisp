@@ -12,6 +12,18 @@ module Relisp
       @current_elisp_variable_num = '0'
     end
 
+    attr_reader :local_binding
+
+    def make_available(symbol, binding)
+      eval "@__#{symbol.to_s}__binding = binding"
+
+      instance_eval <<-endstr
+           def #{symbol.to_s}
+             eval("#{symbol.to_s}", @__#{symbol.to_s}__binding)
+           end
+      endstr
+    end
+
     def new_elisp_variable
       VARIABLE_PREFIX + @current_elisp_variable_num.succ!
     end
@@ -54,15 +66,18 @@ module Relisp
 
       output = ''
       output_line = read_from_emacs
-      until output_line.strip =~ ENDOFMESSAGE_REGEXP
-        if output == QUESTION_CODE
-          write_to_emacs (eval output, @local_binding).to_elisp
+      until output_line.strip == ANSWER_CODE
+        if output_line.strip == QUESTION_CODE
+          write_to_emacs (Kernel.eval(output, @local_binding)).to_elisp
           write_to_emacs ANSWER_CODE
           output = ''
+        elsif output_line.strip == ERROR_CODE
+          # do something here
+          fail
         else
           output << output_line
         end
-        output_line = read_from_emacs
+      output_line = read_from_emacs
       end
 
       output.gsub!(/\n\z/, '')
@@ -88,7 +103,7 @@ module Relisp
       end
 
     end
-    
+
     def start
       begin
         @local_binding = binding
@@ -121,11 +136,13 @@ module Relisp
   end
 
   class ElispSlave < Slave
-    alias eval elisp_eval
+    alias do elisp_eval
 
     def initialize
       super
       elisp_path = File.expand_path(File.join(File.dirname(__FILE__), '../../src/relisp.el'))
+
+      @local_binding = binding
 
       emacs_command =  "emacs --batch"
       emacs_command << " --no-site-file"

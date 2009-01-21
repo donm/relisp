@@ -19,7 +19,7 @@ class TestEditingTypes < Test::Unit::TestCase
     assert_equal Relisp::Buffer, buffer.class
     buffer_names = @emacs.elisp_eval( '(buffer-list)' ).map { |buffer| buffer.name } 
     assert buffer_names.include?(test_buffer_name)
-    assert_equal :buffer, @emacs.eval("(type-of #{buffer.to_elisp})")
+    assert_equal :buffer, @emacs.elisp_eval("(type-of #{buffer.to_elisp})")
   end
   
 end

@@ -26,19 +26,24 @@ class TestSlaves < Test::Unit::TestCase
     assert_equal 6, @emacs.+(1, 2, 3)
   end
 
-  def test_eval
-    assert_equal 3, @emacs.eval("(+ 1 2)")
-
-    @emacs.debug do
-      puts @emacs.elisp_execute('(ruby-eval "1+3")')
-    end
+  def test_do
+    assert_equal 3, @emacs.do("(+ 1 2)")
   end
 
-#   def test_emacs_as_slave
-#   end
+  def test_make_available
+    array = [1, 2, 4]
+    @emacs.make_available(:array, binding)
+    assert_equal array, @emacs.array
+    array.pop
+    assert_equal array, @emacs.array
+  end
 
-#   def test_ruby_as_slave
-#   end
+  def test_emacs_as_master
+    puts @emacs.do '(relisp-start-slave)'
+    puts @emacs.do('(ruby-eval "1 + 1")')
+    puts @emacs.write_to_emacs('(ruby-eval "Relisp::ElispSlave.new")')
+  end
+
 
 end
 
