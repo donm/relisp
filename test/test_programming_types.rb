@@ -53,8 +53,9 @@ class TestProgrammingTypes < Test::Unit::TestCase
 
   def test_string
     assert_equal "String test", @emacs.elisp_eval( '(concat "String " "test")')
-    str = "a string"
-    assert @emacs.elisp_eval( "(equal \"a string\" #{str.to_elisp}  )" )
+    str = "a string\nwith two lines"
+    assert_equal str, @emacs.elisp_eval( '(concat "a string\n" "with two lines")' )
+    assert @emacs.elisp_eval( "(equal \"a string\\nwith two lines\" #{str.to_elisp}  )" )
   end
 
   def test_vector
@@ -96,15 +97,14 @@ class TestProgrammingTypes < Test::Unit::TestCase
     ### (eval (read (trim-trailing-whitespace relisp-ruby-return)))))
     # was this (i.e., without the eval:
     ###       (read (trim-trailing-whitespace relisp-ruby-return))))
-    # this would return 'hash-table':
+    # this would return :hash-table':
     @emacs.elisp_eval( "(type-of #{hash.to_elisp})" )
-    # while this would return 'cons':
+    # while this would return :cons':
     @emacs.elisp_eval( '(type-of (ruby-eval "hash"))' )
-    # So the second way is the only reliable way of testing.
+    # So the second way needs to be included in testing.
 
 #    puts @emacs.elisp_eval( hash.to_elisp )
 #    puts @emacs.elisp_eval( '(ruby-eval "hash")' )
-
 
     # this returns false, even though the above is true--I don't
     # completely understand how emacs is comparing them.
@@ -112,7 +112,3 @@ class TestProgrammingTypes < Test::Unit::TestCase
   end
 
 end  
-
-
-# emacs calling ruby
-# ruby calling emacs calling ruby

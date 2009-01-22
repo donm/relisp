@@ -18,11 +18,8 @@ module Relisp
     end
 
     def initialize(old_elisp_variable, slave)
-      @elisp_variable = slave.new_elisp_variable
+      @elisp_variable = slave.get_permament_variable(old_elisp_variable)
       @slave = slave
-      @slave.elisp_execute( "(setq #{@elisp_variable} #{old_elisp_variable})" )
-      # definitely can't use elisp_eval, otherwise it would try to
-      # read the buffer and get stuck in a loop
     end
 
     def name

@@ -40,5 +40,5 @@
 (car (ruby-eval (concat (relisp-to-ruby str) ".split")))
 
 (equal '(1 2 3) (ruby-eval "[1, 2, 3]"))
-(type-of (ruby-eval "{:name => 'don'}"))           
+(type-of (ruby-eval "{:name => 'don'}"))
 

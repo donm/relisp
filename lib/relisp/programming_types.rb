@@ -57,12 +57,7 @@ module Relisp
 
   class Cons < Array
     def self.from_elisp(object)
-      size = object[:slave].elisp_eval( "(length #{object[:variable]})" )
-      object_array = Array.new
-      size.times do |i|
-        object_array << object[:slave].elisp_eval( "(elt #{object[:variable]} #{i.to_elisp})" )
-      end
-      Relisp::Cons.new(object_array)
+      new(super(object))
     end
 
     def to_elisp
@@ -87,12 +82,7 @@ module Relisp
 
   class Vector < Array
     def self.from_elisp(object)
-      size = object[:slave].elisp_eval( "(length #{object[:variable]})" )
-      object_array = Array.new
-      size.times do |i|
-        object_array << object[:slave].elisp_eval( "(elt #{object[:variable]} #{i.to_elisp})" )
-      end
-      new(object_array)
+      new(super(object))
     end
 
     def to_elisp
@@ -108,6 +98,7 @@ module Relisp
   class HashTable
     def self.from_elisp(object)
       slave = object[:slave]
+      object_variable = slave.get_permament_variable(object[:variable])
 
       keys_var = slave.new_elisp_variable
       vals_var = slave.new_elisp_variable
@@ -115,7 +106,7 @@ module Relisp
       slave.elisp_execute( "(setq #{vals_var} nil)" )
       slave.elisp_execute( "(maphash (lambda (key val)
                               (setq #{keys_var} (append #{keys_var} (list key)))
-                              (setq #{vals_var} (append #{vals_var} (list val)))) #{object[:variable]})" )
+                              (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
       keys = slave.elisp_eval( keys_var )
       vals = slave.elisp_eval( vals_var )
       keys ||= []
@@ -123,7 +114,12 @@ module Relisp
       keys.each_index do |i|
         hash[keys[i]] = vals[i]
       end
-      hash
+
+      slave.makunbound(object_variable)
+      slave.makunbound(keys_var)
+      slave.makunbound(vals_var)
+
+      return hash
     end
 
     def to_elisp
@@ -172,6 +168,18 @@ end
 # either Relisp::Cons or Relisp::Vector.
 class Array
   @@default_elisp_type = Relisp::Cons
+
+  def self.from_elisp(object)
+    object_variable = object[:slave].get_permament_variable(object[:variable])
+    size = object[:slave].elisp_eval( "(length #{object_variable})" )
+    object_array = new
+    size.times do |i|
+      object_array << object[:slave].elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
+    end
+
+    object[:slave].elisp_execute( "(makunbound #{object_variable.to_elisp})" )
+    return object_array
+  end
 
   # Set the type of the 
   def self.default_elisp_type=(type)

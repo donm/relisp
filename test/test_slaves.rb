@@ -38,11 +38,11 @@ class TestSlaves < Test::Unit::TestCase
     assert_equal array, @emacs.array
   end
 
-  def test_emacs_as_master
-    puts @emacs.do '(relisp-start-slave)'
-    puts @emacs.do('(ruby-eval "1 + 1")')
-    puts @emacs.write_to_emacs('(ruby-eval "Relisp::ElispSlave.new")')
-  end
+#   def test_emacs_as_master
+#     puts @emacs.do '(relisp-start-slave)'
+#     puts @emacs.do('(ruby-eval "1 + 1")')
+#     puts @emacs.write_to_emacs('(ruby-eval "Relisp::ElispSlave.new")')
+#   end
 
 
 end

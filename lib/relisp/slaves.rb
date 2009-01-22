@@ -1,11 +1,14 @@
 module Relisp
 
+  # This is the base class for RubySlave and ElispSlave--the Slave
+  # class isn't meant to be used itself.
   class Slave
     ANSWER_CODE         = "___FORTYTWO___"
     QUESTION_CODE       = "___TOBEORNOTTOBE___"
     ERROR_CODE          = "___NO_THATSNOTTRUE_THATSIMPOSSIBLE___"
     ENDOFMESSAGE_REGEXP = Regexp.new(ANSWER_CODE + "|" + QUESTION_CODE + "|" + ERROR_CODE)
-    VARIABLE_PREFIX = '--reserved--relisp--variable--'
+    PREVIOUS_ELISP_RESULT = '--relisp--previous--result'
+    VARIABLE_PREFIX = '--relisp--variable--'
 
     def initialize
       @local_binding = nil
@@ -14,50 +17,42 @@ module Relisp
 
     attr_reader :local_binding
 
-    def make_available(symbol, binding)
-      eval "@__#{symbol.to_s}__binding = binding"
-
-      instance_eval <<-endstr
-           def #{symbol.to_s}
-             eval("#{symbol.to_s}", @__#{symbol.to_s}__binding)
-           end
-      endstr
-    end
-
     def new_elisp_variable
-      VARIABLE_PREFIX + @current_elisp_variable_num.succ!
+      (VARIABLE_PREFIX + @current_elisp_variable_num.succ!).to_sym
     end
 
-    def read_elisp(object_string, object_variable = nil)
+    def get_permament_variable(old_variable)
+      permament_variable = new_elisp_variable
+      elisp_execute( "(setq #{permament_variable} #{old_variable})" )
+      return permament_variable
+    end
 
-      if object_variable
-        elisp_type = elisp_execute "(type-of #{object_variable})"
-      else
-        elisp_type = elisp_execute "(type-of #{object_string})"
-      end 
+    # Pass an elisp evaluation result to the appropriate Relisp class
+    # for translation.  The first line of _result_string_ is the
+    # 'type-of' the elisp object.  The line(s) after that are the text
+    # version of the object.  In case the string representation isn't
+    # enough information to translate the object, the result needs to
+    # be kept (in emacs) in the variable +PREVIOUS_ELISP_RESULT+.
+    def read_elisp(result_string)
+      result_string = result_string.split("\n")
+      elisp_type    = result_string.reverse!.pop
+      object_string = result_string.reverse!.join("\n")
 
       object_info = {
         :string   => object_string,
-        :variable => object_variable, 
+        :variable => PREVIOUS_ELISP_RESULT,
         :slave    => self, 
       }
-      # one more reason to love Ruby:
-      (Kernel.eval elisp_type.split("-").map { |a| a.capitalize }.join).from_elisp(object_info)
-      #           'hash-table'['hash', 'table']['Hash', 'Table'] 'HashTable'
 
+      # Just one more reason to love Ruby.  Call the Relisp class
+      # formed by rubyizing the 'type-of' the result (i.e., hash-table
+      # becomes HashTable).
+      (eval elisp_type.split("-").map { |a| a.capitalize }.join).from_elisp(object_info)
     end
 
     def elisp_eval(code)
-      elisp_object_variable = new_elisp_variable
-      elisp_result = elisp_execute("(setq #{elisp_object_variable} #{code})")
-
-      result = read_elisp(elisp_result, elisp_object_variable)
-      elisp_execute("(makunbound '#{elisp_object_variable})")
-      return result
-    end
-
-    def method_missing(function, *args)
-      elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.to_elisp}.join(' ') + ')')
+      result_string = elisp_execute(code)
+      read_elisp(result_string)
     end
 
     def elisp_execute(code)
@@ -68,7 +63,7 @@ module Relisp
       output_line = read_from_emacs
       until output_line.strip == ANSWER_CODE
         if output_line.strip == QUESTION_CODE
-          write_to_emacs (Kernel.eval(output, @local_binding)).to_elisp
+          write_to_emacs((eval(output, @local_binding)).to_elisp)
           write_to_emacs ANSWER_CODE
           output = ''
         elsif output_line.strip == ERROR_CODE
@@ -84,11 +79,28 @@ module Relisp
       return output
     end
     
+    def method_missing(function, *args)
+      elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.to_elisp}.join(' ') + ')')
+    end
+
+    # The ruby and elisp code are tied to one another so closely that
+    # I don't know if it matters, but it seemed like a good idea to
+    # not hard code the constants in both places.
     def pass_constants
-      [ANSWER_CODE, QUESTION_CODE, ERROR_CODE].each do |constant|
+      [ANSWER_CODE, QUESTION_CODE, ERROR_CODE, PREVIOUS_ELISP_RESULT].each do |constant|
         read_from_emacs
         write_to_emacs constant
       end
+    end
+
+    def make_available(symbol, binding)
+      eval "@__#{symbol.to_s}__binding = binding"
+
+      instance_eval <<-endstr
+           def #{symbol.to_s}
+             eval("#{symbol.to_s}", @__#{symbol.to_s}__binding)
+           end
+      endstr
     end
   end
 
@@ -176,14 +188,14 @@ module Relisp
 
     def debug
       if block_given?
-        debug_start_val = @debug
+        debug_original_val = @debug
         begin
           @debug = true
           puts
           puts "-----------------"
           yield
         ensure
-          @debug = debug_start_val
+          @debug = debug_original_val
           puts "-----------------"
         end
       else

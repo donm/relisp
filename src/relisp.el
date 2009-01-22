@@ -1,6 +1,6 @@
 ;;; lisp-mnt.el --- minor mode for Emacs Lisp maintainers
 
-;; Copyright (C) 2009 Don March <don@ohspite.net>
+;; Copyright (C) 2009 <don@ohspite.net>
 
 ;; Author: Eric S. Raymond <esr@snark.thyrsus.com>
 ;; Created: 14 Jul 1992
@@ -39,7 +39,7 @@
 
 
 
-;;; first, some string functions
+;;; first, some general string functions
 
 (defun relisp-trim-leading-whitespace (str)
   "Remove leading whitespace characters from STR."
@@ -67,7 +67,7 @@
   "Remove leading and trailing whitespace from STR."
   (relisp-trim-leading-whitespace (relisp-trim-trailing-whitespace str)))
 
-;;; now relisp stuff
+;;; now real stuff
 
 (defvar relisp-slave-name "relisp-slave")
 (defvar relisp-buffer-name "*Relisp*")
@@ -110,7 +110,7 @@
   output)
 
 (defun relisp-endofmessage-regexp nil
-  (concat "\\("      relisp-question-code 
+  (concat "\\(" relisp-question-code 
 	  "\\|" relisp-answer-code 
 	  "\\|" relisp-error-code
 	  "\\)" 
@@ -133,11 +133,16 @@
 
 (defun relisp-answer-ruby (question)
   (setq question (relisp-strip (car (split-string question relisp-question-code))))
-  (relisp-log (concat "ruby?> " question))
+  (if relisp-emacs-master-p
+      (relisp-log (concat "ruby?> " question)))
   (setq question (read question))
-  (setq relisp-eval-result (eval question))
-  (relisp-log (concat "lisp=> " (prin1-to-string relisp-eval-result)))
-  (relisp-write-to-ruby (relisp-form-answer relisp-eval-result)))
+  (set relisp-previous-result (eval question))
+  (if relisp-emacs-master-p
+      (progn
+	(relisp-log (concat "lisp=> " (prin1-to-string (type-of (eval relisp-previous-result)))))
+	(relisp-log (concat " ...   " (prin1-to-string (eval relisp-previous-result))))))
+  (relisp-write-to-ruby (prin1-to-string (type-of (eval relisp-previous-result))))
+  (relisp-write-to-ruby (relisp-form-answer (eval relisp-previous-result))))
 
 (defun relisp-form-question (code)
   (unless (stringp code)
@@ -150,7 +155,7 @@
   (concat code "\n" relisp-answer-code))
 
 (defun relisp-to-ruby (object)
-  (let ((var (read (ruby-eval "new_elisp_variable"))))
+  (let ((var (ruby-eval "new_elisp_variable")))
     (set var object)
     (concat "elisp_eval('" (prin1-to-string var) "')")))
 
@@ -185,6 +190,11 @@
     (accept-process-output))
   (setq relisp-error-code (relisp-strip relisp-ruby-output))
   (setq relisp-ruby-output "")
+  (relisp-write-to-ruby "")
+  (while (null (string-match "\n" relisp-ruby-output))
+    (accept-process-output))
+  (setq relisp-previous-result (read (relisp-strip relisp-ruby-output)))
+  (setq relisp-ruby-output "")
   relisp-slave-process)
 
 (defun relisp-become-slave nil
@@ -197,15 +207,15 @@
   (setq relisp-question-code (read-from-minibuffer ""))
   (message "(prompt for error code)")
   (setq relisp-error-code (read-from-minibuffer ""))
+  (message "(prompt for previous result variable)")
+  (setq relisp-previous-result (read (read-from-minibuffer "")))
   (while (equal 1 1) ;; loop is only a CL function, I guess
    (setq input "")
    (setq input-line "")
    (while (null (string-match relisp-question-code (relisp-strip input-line)))
      (setq input-line (read-from-minibuffer ""))
      (setq input (concat input input-line)))
-   (setq question (read (relisp-strip (car (split-string input relisp-question-code)))))
-   (setq relisp-eval-result (eval question))
-   (message (relisp-form-answer relisp-eval-result))))
+   (relisp-answer-ruby input)))
 
 (defun relisp-slave-output-filter (process output-line)
   (setq relisp-ruby-output (concat relisp-ruby-output output-line)))
