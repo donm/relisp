@@ -23,7 +23,7 @@ module Relisp
   # Autoload Type::       A type used for automatically loading seldom-used
   #                         functions.
 
-  Integer = 42.class
+  Integer = 1.class
   class Integer
     def self.from_elisp(object)
       object[:string].to_i
@@ -98,7 +98,7 @@ module Relisp
   class HashTable
     def self.from_elisp(object)
       slave = object[:slave]
-      object_variable = slave.get_permament_variable(object[:variable])
+      object_variable = slave.get_permanent_variable(object[:variable])
 
       keys_var = slave.new_elisp_variable
       vals_var = slave.new_elisp_variable
@@ -140,7 +140,7 @@ class Object
     self.to_s
   end
 
-  def from_elisp(*args)
+  def self.from_elisp(*args)
     nil
   end
 end
@@ -170,7 +170,7 @@ class Array
   @@default_elisp_type = Relisp::Cons
 
   def self.from_elisp(object)
-    object_variable = object[:slave].get_permament_variable(object[:variable])
+    object_variable = object[:slave].get_permanent_variable(object[:variable])
     size = object[:slave].elisp_eval( "(length #{object_variable})" )
     object_array = new
     size.times do |i|
@@ -183,7 +183,8 @@ class Array
 
   # Set the type of the 
   def self.default_elisp_type=(type)
-#    fail unless type.kind_of?(Array)
+    raise ArgumentError, "#{type} is not a kind of Array" unless type.ancestors.include?(Array)
+
     @@default_elisp_type = type
   end
 
@@ -199,41 +200,3 @@ class Array
     elisp_type.new(self).to_elisp
   end
 end
-
-
-
-# (setq bar (lambda nil
-#            (+ 1 2)))
-# => (lambda nil (+ 1 2))
-
-# (type-of (car '(+ 1 2)))
-# => symbol
-
-# (type-of (car bar))
-# => symbol
-
-# (functionp bar)
-# => t
-
-# (functionp 'bar)
-# => nil
-
-# (funcall bar)
-# => 3
-
-# (prin1-to-string bar)
-# => "(lambda nil (+ 1 2))"
-
-# (defun foo nil
-#  (+ 1 2))
-# => foo
-
-# (functionp 'foo)
-# => t
-
-# (type-of (symbol-function 'foo))
-# => cons
-
-# (type-of (symbol-function 'car))
-# => subr
-

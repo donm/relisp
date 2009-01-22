@@ -18,7 +18,7 @@ module Relisp
     end
 
     def initialize(old_elisp_variable, slave)
-      @elisp_variable = slave.get_permament_variable(old_elisp_variable)
+      @elisp_variable = slave.get_permanent_variable(old_elisp_variable)
       @slave = slave
     end
 

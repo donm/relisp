@@ -91,7 +91,7 @@ class TestProgrammingTypes < Test::Unit::TestCase
     assert_equal ruby_hash, hash
     assert_equal hash, @emacs.elisp_eval( hash.to_elisp )
 
-    @emacs.make_available(:hash, binding)
+    @emacs.provide(:hash, binding)
 
     # when this elisp line:
     ### (eval (read (trim-trailing-whitespace relisp-ruby-return)))))
