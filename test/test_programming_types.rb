@@ -75,13 +75,13 @@ class TestProgrammingTypes < Test::Unit::TestCase
   end
 
   def test_hash_table
-    @emacs.elisp_eval( '(setq ht (make-hash-table))' )
-    @emacs.elisp_eval( '(puthash "first" "john" ht)' )
-    @emacs.elisp_eval( '(puthash \'last "doe" ht)' )
-    @emacs.elisp_eval( '(setq subht (make-hash-table))' )
-    @emacs.elisp_eval( '(puthash "first" "john" subht)' )
-    @emacs.elisp_eval( '(puthash \'last "doe" subht)' )
-    @emacs.elisp_eval( '(puthash \'sub subht ht)' )
+    @emacs.elisp_execute( '(setq ht (make-hash-table))' )
+    @emacs.elisp_execute( '(puthash "first" "john" ht)' )
+    @emacs.elisp_execute( '(puthash \'last "doe" ht)' )
+    @emacs.elisp_execute( '(setq subht (make-hash-table))' )
+    @emacs.elisp_execute( '(puthash "first" "john" subht)' )
+    @emacs.elisp_execute( '(puthash \'last "doe" subht)' )
+    @emacs.elisp_execute( '(puthash \'sub subht ht)' )
     hash = @emacs.elisp_eval( 'ht' )
     ruby_hash = Hash.new
     ruby_hash["first"] = 'john'

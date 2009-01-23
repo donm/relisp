@@ -1,5 +1,6 @@
-# TODO: error checking
-#  make sure slave is running before evaling
+# TODO:
+# check that things work when elisp responds with an ERROR_CODE
+# maybe catch Errno::EPIPE to see if slave died
 
 module Relisp
 
@@ -49,10 +50,10 @@ module Relisp
       return permanent_variable
     end
 
-
     # Run _code_ in the elisp process.
     #
     def elisp_execute(code)
+      code = code.to_s # maybe code is a symbol or something
       write_to_emacs code
       write_to_emacs QUESTION_CODE
 
@@ -64,8 +65,7 @@ module Relisp
           write_to_emacs ANSWER_CODE
           output = ''
         elsif output_line.strip == ERROR_CODE
-          # TODO: raise Relisp::ElispError
-          raise
+          raise Relisp::ElispError
         else
           output << output_line
         end
@@ -109,7 +109,9 @@ module Relisp
       # formed by rubyizing the 'type-of' the result (i.e., hash-table
       # becomes HashTable).
       ruby_type = (eval elisp_type.split("-").map { |a| a.capitalize }.join)
-      raise "#{ruby_type} not implemented" unless ruby_type.kind_of? Class
+      unless ruby_type.kind_of? Class
+        raise "#{ruby_type} not implemented" 
+      end
       ruby_type.from_elisp(object_info)
     end
 
@@ -130,7 +132,12 @@ module Relisp
     # functions in the 'ruby way.'  
     #
     def method_missing(function, *args) # :doc:
-      elisp_eval('(' + function.to_s + ' ' + args.map{|a| a.to_elisp}.join(' ') + ')')
+      function = function.to_s.gsub('_', '-')
+
+      elisp_eval('(' + 
+                 function + ' ' + 
+                 args.map{|a| a.to_elisp}.join(' ') +
+                 ')')
     end
     
     public
@@ -260,7 +267,7 @@ module Relisp
       emacs_command << " 2>&1"
       @emacs_pipe = IO.popen(emacs_command, "w+")
 
-      # gobble whatever output from emacs until emacs reports for duty
+      # gobble whatever output until emacs reports for duty
       until read_from_emacs.strip == "SEND CONSTANTS"; end
       pass_constants
     end
@@ -295,7 +302,7 @@ module Relisp
     #
     def write_to_emacs(code)
       if @debug
-        puts "ruby> " + code unless code =~ ENDOFMESSAGE_REGEXP
+        puts "ruby> " + code.to_s unless code =~ ENDOFMESSAGE_REGEXP
       end
       @emacs_pipe.puts code
     end
