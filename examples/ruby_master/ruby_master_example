@@ -1,12 +1,25 @@
 #!/usr/bin/env ruby
 
-$:.unshift File.join(File.dirname(__FILE__), "../../lib") # add ../lib to the Ruby library path 
+$:.unshift File.join(File.dirname(__FILE__), "../../lib") 
 
 require 'relisp'
 
 emacs = Relisp::ElispSlave.new
 
-puts emacs.eval("(+ 1 2)")
-#puts emacs.*(5,2)
-#puts (emacs.elisp_eval "(concat \"Don \" \"March\")")
+# basic functionality
+puts emacs.elisp_eval("(+ 1 2)")
+puts (emacs.elisp_eval '(concat "two " "words")')
+puts emacs.*(5,2)
+
+# variable persistence between calls
+emacs.elisp_eval( "(setq new-var 23)")
+puts emacs.elisp_eval( "(+ 1 new-var)")
+
+# recursive calls
+puts emacs.elisp_eval( '(ruby-eval "1 + 3")')
+
+# wrappers around elisp editing data types
+buffer =  Relisp::Buffer.new("ruby-created-buffer")
+puts buffer
+puts buffer.name
 

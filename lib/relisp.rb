@@ -1,26 +1,19 @@
-# Emacs is great.  So is Ruby.  This goal of this library it to:
+# Emacs is great.  So is Ruby.  This purpose of this library is to:
 # * call Ruby from Emacs
 # * call Elisp from Ruby
-# * manipulate Emacs without using elisp (Ruby wrappers around some
-#   Elisp functions and objects)
+# * manipulate Emacs without using Elisp to some extent (Ruby wrappers
+#   around some Elisp functions and objects)
 # * reduce the number of blog entries titled "Is Ruby an acceptable
-#   lisp?" and flame wars under the title "Ruby vs. lisp vs. scheme
+#   lisp?" and flame wars under the title "ruby vs. lisp vs. scheme
 #   vs. haskell vs. ..."
 #
+# See the examples directory to get started.
+#
 # TODO:
-#  more documentation on this page:
-#    examples and use cases
-#  Buffers, Frames, etc.
-#  relisp.rb:
-#    documentation
-#    defvars
-#    let instead of setq
-#    catch errors
-#    start ruby without warnings?
-#  unit tests
+#  implement Buffers, Frames, etc.
+#
 #  figure out how to install (for emacs and ruby, independently)
-#  finalize method names, class names, etc.
-#  copyright stuff
+#  copyright notices and stuff
 #  package it and submit it
 #  write a blog entry
 #

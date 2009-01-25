@@ -1,8 +1,20 @@
 # TODO:
-# check that things work when elisp responds with an ERROR_CODE
-# maybe catch Errno::EPIPE to see if slave died
+# * maybe catch Errno::EPIPE to see if slave died
 
 module Relisp
+
+  @default_slave = nil
+  
+  def self.default_slave
+    @default_slave
+  end
+
+  def self.default_slave=(slave)
+    unless slave.kind_of?(Slave)
+      raise ArgumentError, "#{slave} is not a Slave"
+    end
+    @default_slave = slave
+  end
 
   # This is the base class for RubySlave and ElispSlave--the Slave
   # class isn't meant to be used itself.
@@ -20,7 +32,7 @@ module Relisp
     ENDOFMESSAGE_REGEXP   = Regexp.new(ANSWER_CODE + '|' + QUESTION_CODE + '|' + ERROR_CODE)
     # Every time ruby asks elisp to evaluate an expression, the result
     # is saved in this variable so ruby can access it if necessary.
-    PREVIOUS_ELISP_RESULT = '--relisp--previous--result'
+    PREVIOUS_ELISP_RESULT = :"--relisp--previous--result"
     # A prefix for elisp variables created by ruby.
     VARIABLE_PREFIX        = '--relisp--variable--'
 
@@ -31,6 +43,7 @@ module Relisp
       # allowing these variables to persist through multiple calls.
       @local_binding = nil
       @current_elisp_variable_num = '0'
+      Relisp.default_slave = self
     end
 
     # Return a symbol which corresponds to an unused variable in
@@ -65,7 +78,7 @@ module Relisp
           write_to_emacs ANSWER_CODE
           output = ''
         elsif output_line.strip == ERROR_CODE
-          raise Relisp::ElispError
+          raise Relisp::ElispError, (eval output)
         else
           output << output_line
         end
@@ -129,10 +142,13 @@ module Relisp
     # each of the _args_).  
     #
     # This automatically allows access to a large portion of elisp
-    # functions in the 'ruby way.'  
+    # functions a rubyish way.  
     #
     def method_missing(function, *args) # :doc:
       function = function.to_s.gsub('_', '-')
+      unless elisp_eval("(functionp '#{function})")
+        raise NameError, "#{function} is not an elisp function"
+      end
 
       elisp_eval('(' + 
                  function + ' ' + 
@@ -144,11 +160,11 @@ module Relisp
     
     # Creates a method in the slave that is a reference to the
     # variable given by _symbol_ in the scope of _binding_. This is
-    # probably only useful when calling evaluating elisp in ruby where
-    # the elisp code itself calls ruby again. When the elisp process
-    # calls +ruby_eval+ the code is executed inside the loop of the
-    # slave object, so the variables in the scope of the original call
-    # to elisp aren't normally available.
+    # probably only useful when calling elisp in ruby where the elisp
+    # code itself calls ruby again. When the elisp process calls
+    # +ruby_eval+ the code is executed inside the loop of the slave
+    # object, so the variables in the scope of the original call to
+    # elisp aren't normally available.
     #
     #    emacs = Relisp::ElispSlave.new
     #    number = 5
@@ -173,7 +189,7 @@ module Relisp
      
 
   # This class dedicates the ruby process to responding to queries
-  # from the emacs process that started it.  
+  # from the emacs process that started it.  See Relisp::Slave.
   #
   class RubySlave < Slave
 
@@ -210,7 +226,7 @@ module Relisp
           end
           code.gsub!(/\n\z/, '')
           
-          write_to_emacs (eval code, @local_binding).to_elisp
+          write_to_emacs((eval code, @local_binding).to_elisp)
           write_to_emacs ANSWER_CODE
         end
       rescue => dag_yo
@@ -238,7 +254,7 @@ module Relisp
   end
   
   # Provides an interface to an instance of emacs started as an IO
-  # object.
+  # object.  See Relisp::Slave.
   #
   class ElispSlave < Slave
     alias do elisp_eval
@@ -272,13 +288,13 @@ module Relisp
       pass_constants
     end
 
-    attr_writer :debug
+    attr_accessor :debug
 
     # When given a block, runs the block with debugging turned on and
     # then restores the former status of debug messages.  Otherwise,
-    # toggles the status of debug messages.
+    # toggles the status of debug messages. 
     #
-    def debug
+    def debugging
       if block_given?
         debug_original_val = @debug
         begin

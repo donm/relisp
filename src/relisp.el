@@ -1,13 +1,6 @@
-;;; lisp-mnt.el --- minor mode for Emacs Lisp maintainers
+;;; relisp.el --- library for ruby/elisp interaction
 
 ;; Copyright (C) 2009 <don@ohspite.net>
-
-;; Author: Eric S. Raymond <esr@snark.thyrsus.com>
-;; Created: 14 Jul 1992
-;; Version: 1.2
-;; Keywords: docs
-
-;; This file is part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,18 +18,8 @@
 ;; 02110-1301 USA
 
 
-;; check for errors
-
-;;   * When you encounter an error condition, call the function `error'
-;;     (or `signal').  The function `error' does not return.  *Note
-;;     Signaling Errors::.
-
-;;   * An error message should start with a capital letter but should not
-;;     end with a period.
-
-;; make ruby-eval interactive and accept input from minibuffer
-
-
+;;; TODO:
+;; signal errors when ruby returns an error?
 
 
 ;;; first, some general string functions
@@ -69,30 +52,32 @@
 
 ;;; now real stuff
 
-(defvar relisp-slave-name "relisp-slave")
-(defvar relisp-buffer-name "*Relisp*")
-(defvar relisp-emacs-master-p t)
+(defvar relisp-slave-name "relisp-slave" "Name of the relisp ruby slave process.")
+(defvar relisp-buffer-name "*Relisp*" "Name of the relisp output buffer.")
 
 (defun relisp-log (text)
-  (if relisp-emacs-master-p
-      (progn
-	(get-buffer-create relisp-buffer-name)
-	(unless (string-match (relisp-endofmessage-regexp) (relisp-strip text))
-	  (set-buffer relisp-buffer-name)
-	  (goto-char (point-max))
-	  (insert text "\n")))))
+  "Insert TEXT at the end of `relisp-buffer-name', unless emacs is the slave."
+  (when relisp-emacs-master-p
+    (get-buffer-create relisp-buffer-name)
+    (unless (string-match (relisp-endofmessage-regexp) (relisp-strip text))
+      (set-buffer relisp-buffer-name)
+      (goto-char (point-max))
+      (insert text "\n"))))
 
 (defun relisp-write-to-ruby (message)
+  "Send MESSAGE to the ruby process."
   (if relisp-emacs-master-p
       (process-send-string relisp-slave-process (concat message "\n"))
     (message message)))
 
 (defun relisp-read-from-ruby nil
+  "Accept ruby input, stopping at a match to `relisp-endofmessage-regexp'."
   (if relisp-emacs-master-p
       (relisp-accept-slave-output)
     (relisp-accept-master-output)))
     
 (defun relisp-accept-slave-output nil
+  "Accept a full ruby message when ruby is the slave process."
   (while (and (relisp-slave-alive-p) 
 	      (null (string-match (relisp-endofmessage-regexp)
 				  relisp-ruby-output)))
@@ -102,14 +87,16 @@
     val))
 
 (defun relisp-accept-master-output nil
-  (setq output "")
-  (setq output-line "")
-  (while (null (string-match (relisp-endofmessage-regexp) output-line))
-     (setq output-line (read-from-minibuffer ""))
-     (setq output (concat output output-line)))
-  output)
+  "Accept a full ruby message when emacs is the slave process."
+  (let ((output "") 
+	(output-line ""))
+    (while (null (string-match (relisp-endofmessage-regexp) output-line))
+      (setq output-line (read-from-minibuffer ""))
+      (setq output (concat output output-line)))
+    output))
 
 (defun relisp-endofmessage-regexp nil
+  "Return a regexp that matches codes indicating a message termination."
   (concat "\\(" relisp-question-code 
 	  "\\|" relisp-answer-code 
 	  "\\|" relisp-error-code
@@ -117,49 +104,73 @@
 	  "[[:space:]]*"))
 
 (defun ruby-eval (ruby-code)
-  (if (and relisp-emacs-master-p (not (relisp-slave-alive-p)))
-      (relisp-start-slave))
-  (relisp-log (concat "lisp?> " ruby-code))
-  (relisp-write-to-ruby (relisp-form-question ruby-code))
-  (setq message (relisp-read-from-ruby))
-  (while (string-match relisp-question-code message)
-    (relisp-answer-ruby message)
-    (setq message (relisp-read-from-ruby)))
-  (setq relisp-ruby-return (relisp-strip (car (split-string message relisp-answer-code))))
-  (relisp-log (concat "ruby=> " relisp-ruby-return "\n"))
-  (if (string-match (concat "\n?" relisp-error-code "[[:space:]]*") relisp-ruby-return)
-      (concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
-    (eval (read (relisp-trim-trailing-whitespace relisp-ruby-return)))))
+  "Have ruby evaluate RUBY-CODE and return the result.
+The result is an elisp object equivalent to the ruby result of
+RUBY-CODE.  Reads input from the minibuffer unless an argument is
+given."
+  (interactive "sruby> ")
+  (let (message result)
+    (if (and relisp-emacs-master-p (not (relisp-slave-alive-p)))
+	(relisp-start-slave))
+    (relisp-log (concat "lisp?> " ruby-code))
+    (relisp-write-to-ruby (relisp-form-question ruby-code))
+    (setq message (relisp-read-from-ruby))
+    (while (string-match relisp-question-code message)
+      (relisp-answer-ruby message)
+      (setq message (relisp-read-from-ruby)))
+    (setq relisp-ruby-return (relisp-strip (car (split-string message relisp-answer-code))))
+    (relisp-log (concat "ruby=> " relisp-ruby-return "\n"))
+    (setq result (if (string-match (concat "\n?" relisp-error-code "[[:space:]]*") relisp-ruby-return)
+		     (concat "RUBY ERROR: " (replace-match "" nil t relisp-ruby-return))
+		   (eval (read (relisp-trim-trailing-whitespace relisp-ruby-return)))))
+    (if (interactive-p) 
+	(message (prin1-to-string result)))
+    result))
 
 (defun relisp-answer-ruby (question)
+  "Evaluate the QUESTION from ruby and send ruby the result."
   (setq question (relisp-strip (car (split-string question relisp-question-code))))
-  (if relisp-emacs-master-p
-      (relisp-log (concat "ruby?> " question)))
+  (relisp-log (concat "ruby?> " question))
   (setq question (read question))
-  (set relisp-previous-result (eval question))
-  (if relisp-emacs-master-p
-      (progn
+  (condition-case error-description
+      (progn 
+	(set relisp-previous-result (eval question))
 	(relisp-log (concat "lisp=> " (prin1-to-string (type-of (eval relisp-previous-result)))))
-	(relisp-log (concat " ...   " (prin1-to-string (eval relisp-previous-result))))))
-  (relisp-write-to-ruby (prin1-to-string (type-of (eval relisp-previous-result))))
-  (relisp-write-to-ruby (relisp-form-answer (eval relisp-previous-result))))
+	(relisp-log (concat " ...   " (prin1-to-string (eval relisp-previous-result))))
+	(relisp-write-to-ruby (prin1-to-string (type-of (eval relisp-previous-result))))
+	(relisp-write-to-ruby (relisp-form-answer (eval relisp-previous-result))))
+    (error (relisp-write-to-ruby 
+	    (relisp-form-error
+	     (error-message-string error-description))))))
 
 (defun relisp-form-question (code)
+  "Return a string that tells ruby to evaluate CODE."
   (unless (stringp code)
     (setq code (prin1-to-string code)))
   (concat code "\n" relisp-question-code))
 
 (defun relisp-form-answer (code)
-;;  (unless (stringp code)
-    (setq code (prin1-to-string code))
+  "Return a string that tells ruby that CODE is the answer to its query."
+  (setq code (prin1-to-string code))
   (concat code "\n" relisp-answer-code))
 
+(defun relisp-form-error (code)
+  "Return a string that tells ruby that CODE is an error message."
+  (setq code (prin1-to-string code))
+  (concat code "\n" relisp-error-code))
+
 (defun relisp-to-ruby (object)
+  "Return a string that, when evaluated in ruby, results in OBJECT."
   (let ((var (ruby-eval "new_elisp_variable")))
     (set var object)
     (concat "elisp_eval('" (prin1-to-string var) "')")))
 
 (defun relisp-start-slave nil
+  "Start a ruby slave process to do emacs's bidding.
+If `relisp-ruby-slave-path' is bound, then that file is read and
+the Relisp::RubySlave object must be started there.  Otherwise
+emacs starts a ruby process and starts a RubySlave on its own."
+  (interactive)
   (setq relisp-emacs-master-p t)
   (relisp-stop-slave)
   (setq relisp-ruby-output "")
@@ -198,6 +209,7 @@
   relisp-slave-process)
 
 (defun relisp-become-slave nil
+  "Convert the emacs process into a slave.  Only called by ruby."
   (setq relisp-emacs-master-p nil)
   ;; get constants
   (message "SEND CONSTANTS")
@@ -209,22 +221,27 @@
   (setq relisp-error-code (read-from-minibuffer ""))
   (message "(prompt for previous result variable)")
   (setq relisp-previous-result (read (read-from-minibuffer "")))
-  (while (equal 1 1) ;; loop is only a CL function, I guess
-   (setq input "")
-   (setq input-line "")
-   (while (null (string-match relisp-question-code (relisp-strip input-line)))
-     (setq input-line (read-from-minibuffer ""))
-     (setq input (concat input input-line)))
-   (relisp-answer-ruby input)))
+  (let (input input-line)
+    (while t ;; loop is only a CL function, I guess
+      (setq input "")
+      (setq input-line "")
+      (while (null (string-match relisp-question-code (relisp-strip input-line)))
+	(setq input-line (read-from-minibuffer ""))
+	(setq input (concat input input-line)))
+      (relisp-answer-ruby input))))
+
 
 (defun relisp-slave-output-filter (process output-line)
+  "Listen to PROCESS and add each OUTPUT-LINE to `relisp-ruby-output'."
   (setq relisp-ruby-output (concat relisp-ruby-output output-line)))
 
 (defun relisp-stop-slave nil
+  "Kill the ruby slave process."
   (if (boundp 'relisp-slave-process)
       (delete-process relisp-slave-process)))
 
 (defun relisp-slave-alive-p nil
+  "Return t if the ruby slave is alive and well."
   (and (boundp 'relisp-slave-process) 
        (equal (process-status relisp-slave-process) 'run)
        (boundp 'relisp-question-code)

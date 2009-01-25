@@ -30,14 +30,25 @@ module Relisp
       new(object[:variable], object[:slave])
     end
 
-    def initialize(old_elisp_variable, slave)
-      @elisp_variable = slave.get_permanent_variable(old_elisp_variable)
-
-      unless slave.elisp_eval("(type-of #{@elisp_variable})") == :buffer
-        raise ArgumentError, "#{@elisp_variable} isn't a buffer"
-      end
-
+    # When _var_or_name_ is a symbol it is considered to be the name
+    # of a pre-existing buffer in the _slave_ process.  If
+    # _var_or_name_ is a string, a new buffer is created with a name
+    # based on that string. 
+    def initialize(var_or_name, slave = Relisp.default_slave)
       @slave = slave
+
+      if var_or_name.kind_of?( Symbol )
+        @elisp_variable = @slave.get_permanent_variable(var_or_name)
+
+        unless @slave.elisp_eval("(type-of #{@elisp_variable})") == :buffer
+          raise ArgumentError, "#{@elisp_variable} isn't a buffer"
+        end
+      elsif var_or_name.kind_of?( String )
+        @slave.elisp_execute("(generate-new-buffer #{var_or_name.to_elisp})")
+        @elisp_variable = @slave.get_permanent_variable(Relisp::Slave::PREVIOUS_ELISP_RESULT)
+      else
+        raise ArgumentError
+      end
     end
 
     def to_elisp

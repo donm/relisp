@@ -66,12 +66,14 @@ module Relisp
     end
   end
 
+
   Float = (3.14).class
   class Float
     def self.from_elisp(object)
       object[:string].to_f
     end
   end
+
 
   Symbol = :flag.class
   class Symbol
@@ -90,6 +92,7 @@ module Relisp
     end
   end
 
+
   class Cons < Array
     def self.from_elisp(object)
       new(super(object))
@@ -104,6 +107,7 @@ module Relisp
     end
   end
 
+
   String = "words, words, words".class
   class String
     def self.from_elisp(object)
@@ -114,6 +118,7 @@ module Relisp
       self.dump
     end
   end
+
 
   class Vector < Array
     def self.from_elisp(object)
@@ -128,6 +133,7 @@ module Relisp
       print_string << ']'
     end
   end
+
 
   HashTable = {:money => "power"}.class
   class HashTable
@@ -193,11 +199,13 @@ class NilClass
   end
 end
 
+
 class TrueClass
   def to_elisp
     "t"
   end
 end
+
 
 class FalseClass
   # Falseness in elisp is represented by 'nil'.
@@ -206,8 +214,10 @@ class FalseClass
   end
 end
 
+
 # The normal Array class is modified so that an array can be converted
 # to either Relisp::Cons or Relisp::Vector.
+#
 class Array
   @@default_elisp_type = Relisp::Cons
 
@@ -231,6 +241,10 @@ class Array
     end
 
     @@default_elisp_type = type
+  end
+
+  def self.default_elisp_type
+    @@default_elisp_type
   end
 
   # The elisp type that this array will be converted to by to_elisp.
