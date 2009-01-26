@@ -212,6 +212,12 @@ class Object
   end
 end
 
+class Class
+  # Convert classes to the symbol form of their name
+  def to_elisp
+    self.to_s.to_sym.to_elisp
+  end
+end
 
 class NilClass
   def to_elisp

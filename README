@@ -15,20 +15,137 @@ Emacs is great.  So is Ruby.  This purpose of this library is to:
 
    [sudo] gem install sundae
 
-Then put <tt>src/relisp.el</tt> and/or <tt>src/relisp.elc</tt> in your
-elisp directory (probably <tt>~/.elisp</tt>) and add <tt>(require
-'relisp)</tt> to your emacs customization file (probably
-<tt>~/.emacs</tt>).
+Then the library is installed, and you can call elisp from ruby.  But
+if you want to call ruby from emacs (and you do, right?) you need to
+go into the +src+ directory and copy <tt>relisp.el</tt> and/or
+<tt>relisp.elc</tt> to your elisp folder (probably <tt>~/.elisp</tt>).
+Then you might want to add the line <tt>(require 'relisp)</tt> to your
+emacs initialization file (probably <tt>~/.emacs'</tt>).
+
+If you don't know where to find the files for this gem, run the
+command <tt>gem env gemdir</tt>.  Or you can download the tarball for
+this gem and get the files there.
 
 == Usage
 
-See the stuff in the +examples+ directory to get started.
+The stuff below is all in the +examples+ directory if you want to try
+running it.
 
+=== Emacs calling Ruby
+
+==== With a generic slave
+
+Start up a ruby process:
+
+  (relisp-start-slave)
+
+Then make calls to ruby with <tt>ruby_eval</tt>:
+  
+  (ruby-eval "1 + 2 + 3") 
+      => 6
+  (ruby-eval "'ruby string'.reverse")
+      => "gnirts ybur"
+  (type-of (ruby-eval "{:name => 'john'}"))	
+      => hash-table
+
+If you need to use an elisp variable or expression in the middle of
+the command, <tt>relisp-to-ruby</tt> will provide a string that, when
+evaluated by ruby, is equal to the original elisp object.  For example:
+
+  (setq vect [1 2 3 4 5 6])
+  (ruby-eval (concat (relisp-to-ruby vect) ".class"))
+     => Relisp::Vector
+  (ruby-eval (concat (relisp-to-ruby vect) ".kind_of?(Array)"))
+     => t
+  (ruby-eval (concat (relisp-to-ruby vect) ".reverse"))
+     => [6 5 4 3 2 1]
+  (type-of (ruby-eval (concat (relisp-to-ruby vect) ".reverse")))
+     => vector
+
+Note that the data types/classes are correct in both languages.  The
+results are converted--it's not just strings getting passed back and
+forth.
+
+Elisp can ask Ruby to evaluate code which in turn will call elisp:
+
+  (ruby-eval "elisp_eval('(+ 1 2)')")
+  (ruby-eval "elisp_eval('(ruby-eval \"1 + 2\")')")
+
+The state of the slave persists from one call to the next:
+
+  (ruby-eval "a = 5")
+  (ruby-eval "a + 1")
+     => 6
+
+==== Specifying a slave file
+
+The ruby slave file should look something like this:
+
+  require 'relisp'
+
+  slave = Relisp::RubySlave.new
+
+  def sample_ruby_method
+    Relisp::Buffer.new("ruby-created-buffer")
+  end
+
+  slave.start
+
+The call to <tt>slave.start</tt> should probably be the last line of
+the file since it starts an infinite loop.  The elisp code just
+needs to specify the ruby slave file before calling
+<tt>relisp-start-slave</tt>:
+
+  (setq relisp-ruby-slave-path "ruby_slave")
+  (relisp-start-slave)
+  (ruby-eval "sample_ruby_method")
+
+For debugging and curiousity, all of the messages between emacs and
+ruby are recorded in the buffer <tt>\*Relisp\*</tt>.
+
+=== Ruby calling Emacs
+
+The Emacs process is managed by <tt>Relisp::ElispSlave</tt>.
+
+  require 'relisp'
+  emacs = Relisp::ElispSlave.new
+
+Calls are made calling <tt>elisp_eval</tt> and <tt>elisp_execute</tt>
+on the ElispSlave object.
+
+  emacs.elisp_eval "(+ 1 2)"
+     => 3
+  emacs.elisp_eval '(concat "two " "words")'
+     => "two words"
+  emacs.elisp_eval( "(setq new-var 23)")
+  emacs.elisp_eval( "(+ 1 new-var)")
+     => 24
+  
+The usual <tt>method_missing</tt> magic provides access to elisp
+functions:
+
+  emacs.concat("two", " words")        # (concat "two" "words")
+  emacs.*(5,2)                         # (* 5 2)
+  emacs.create_file_buffer("blah.txt") # (create-file-buffer "blah.txt")
+
+Emacs editing types have (or will have) proxy classes:
+
+  buffer =  Relisp::Buffer.new("ruby-created-buffer")
+     => #<Relisp::Buffer:0xb7c4784c>
+  buffer.name
+     => "ruby-created-buffer"
+
+To print debug information showing messages between ruby and emacs,
+use the <tt>ElispSlave#debugging</tt> method:
+
+  emacs.debugging do
+    emacs.elisp_eval "(+ 1 2)"    
+  end 
 
 == To Do
 
-* finish implementing emacs editting types (Buffers, Frames, etc.)
-* adapt for windows?
+* finish implementing emacs editting types (buffers, frames, etc.)
+* fix Windows bug(s)
 
 == Author
 

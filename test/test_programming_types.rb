@@ -61,6 +61,13 @@ class TestArray < Test::Unit::TestCase
   end
 end
 
+class TestClass < Test::Unit::TestCase
+  def test_to_elisp
+    @emacs = Relisp::ElispSlave.new
+    assert_equal :Array, @emacs.elisp_eval('(ruby-eval "[1, 2].class")')
+  end
+end
+
 class TestFalseClass < Test::Unit::TestCase
   def setup
     @emacs = Relisp::ElispSlave.new

@@ -9,7 +9,9 @@ emacs = Relisp::ElispSlave.new
 # basic functionality
 puts emacs.elisp_eval("(+ 1 2)")
 puts (emacs.elisp_eval '(concat "two " "words")')
+puts emacs.concat("two", " words")
 puts emacs.*(5,2)
+puts emacs.create_file_buffer("blah.txt")
 
 # variable persistence between calls
 emacs.elisp_eval( "(setq new-var 23)")

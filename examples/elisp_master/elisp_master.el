@@ -24,15 +24,20 @@
 ;; Basic functionality--note that return values are not strings but
 ;; actual elisp data types:
 (ruby-eval "1 + 2 + 3")
-(ruby-eval "'ruby sentence'.reverse")
+(ruby-eval "'ruby string'.reverse")
 
 (setq vect [1 2 3 4 5 6])
+(ruby-eval (concat (relisp-to-ruby vect) ".class"))
+(ruby-eval (concat (relisp-to-ruby vect) ".kind_of?(Array)"))
 (ruby-eval (concat (relisp-to-ruby vect) ".reverse"))
 (type-of (ruby-eval (concat (relisp-to-ruby vect) ".reverse")))
 
 (setq list '(3 5 2 6 4 1))
 (ruby-eval (concat (relisp-to-ruby list) ".sort"))
 (type-of (ruby-eval (concat (relisp-to-ruby list) ".sort")))
+
+(setq str "a couple of words")
+(ruby-eval (concat (relisp-to-ruby str) ".split"))
 
 (type-of (ruby-eval "{:name => 'john'}"))
 
@@ -44,8 +49,6 @@
 (ruby-eval "a = 5")
 (ruby-eval "a + 1")
 
-(setq str "a couple of words")
-(ruby-eval (concat (relisp-to-ruby str) ".split"))
 
 
 

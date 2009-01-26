@@ -226,7 +226,7 @@ module Relisp
       pass_constants
 
       if block_given?
-        yield
+        yield self
         start
       end
 
@@ -293,7 +293,11 @@ module Relisp
 
       @local_binding = binding
 
-      emacs_command =  "emacs --batch "
+      emacs_command = if RUBY_PLATFORM.downcase.include?('mswin')
+                        "start emacs --batch "
+                      else
+                        "emacs --batch "
+                      end
       emacs_command << cli_options
       emacs_command << " -l #{elisp_path}"
       load_files.each do |file|
