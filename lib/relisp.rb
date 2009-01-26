@@ -1,23 +1,26 @@
-# Emacs is great.  So is Ruby.  This purpose of this library is to:
-# * call Ruby from Emacs
-# * call Elisp from Ruby
-# * manipulate Emacs without using Elisp to some extent (Ruby wrappers
-#   around some Elisp functions and objects)
-# * reduce the number of blog entries titled "Is Ruby an acceptable
-#   lisp?" and flame wars under the title "ruby vs. lisp vs. scheme
-#   vs. haskell vs. ..."
+#--
+# Copyright (C) 2009 <don@ohspite.net>
 #
-# See the examples directory to get started.
+# This file is part of Relisp.
 #
-# TODO:
-#  implement Buffers, Frames, etc.
+# Relisp is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#  
+# Relisp is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
 #
-#  figure out how to install (for emacs and ruby, independently)
-#  copyright notices and stuff
-#  package it and submit it
-#  write a blog entry
-#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see
+# <http://www.gnu.org/licenses/>.
+#++
+
 module Relisp
+  VERSION = '0.9.0'
+
   class ElispError < RuntimeError; end
 end
 

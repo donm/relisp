@@ -2,12 +2,14 @@
 
 ;; Copyright (C) 2009 <don@ohspite.net>
 
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 2 of the
-;; License, or (at your option) any later version.
+;; This file is part of Relisp.
 
-;; This program is distributed in the hope that it will be useful, but
+;; Relisp is free software; you can redistribute it and/or modify it
+;; under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2 of the License, or
+;; (at your option) any later version.
+
+;; Relisp is distributed in the hope that it will be useful, but
 ;; WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;; General Public License for more details.
@@ -18,7 +20,7 @@
 ;; 02110-1301 USA
 
 
-;;; TODO:
+;; TODO:
 ;; signal errors when ruby returns an error?
 
 
@@ -54,6 +56,16 @@
 
 (defvar relisp-slave-name "relisp-slave" "Name of the relisp ruby slave process.")
 (defvar relisp-buffer-name "*Relisp*" "Name of the relisp output buffer.")
+
+;; to prohibit free variable warnings
+(defvar relisp-emacs-master-p t)
+(defvar relisp-slave-process)
+(defvar relisp-ruby-output)
+(defvar relisp-question-code)
+(defvar relisp-answer-code)
+(defvar relisp-error-code)
+(defvar relisp-ruby-return)
+(defvar relisp-previous-result)
 
 (defun relisp-log (text)
   "Insert TEXT at the end of `relisp-buffer-name', unless emacs is the slave."
@@ -182,6 +194,7 @@ emacs starts a ruby process and starts a RubySlave on its own."
     (process-send-string relisp-slave-name 
 			 (concat "#! ruby \n"
 				 "$:.unshift File.join(File.dirname('" (symbol-file 'relisp-slave-name) "'), '../lib')\n"
+				 "require 'rubygems'\n" 
 				 "require 'relisp'\n" 
 				 "Relisp::RubySlave.new.start\n"
 				 "__END__\n")))
