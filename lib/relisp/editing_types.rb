@@ -42,45 +42,115 @@
 
 module Relisp
 
-  # A Buffer object just holds onto the Emacs buffer in an elisp
-  # variable and acts as a proxy.
-  #
-  class Buffer
+  class Proxy
     def self.from_elisp(object)
       new(object[:variable], object[:slave])
     end
 
-    # When _var_or_name_ is a symbol it is considered to be the name
-    # of a pre-existing buffer in the _slave_ process.  If
-    # _var_or_name_ is a string, a new buffer is created with a name
-    # based on that string. 
-    def initialize(var_or_name, slave = Relisp.default_slave)
-      @slave = slave
+    def initialize(*args)
+      @slave = if args.last.kind_of?(Relisp::Slave)
+                 args.pop
+               else
+                 Relisp.default_slave
+               end
 
-      if var_or_name.kind_of?( Symbol )
-        @elisp_variable = @slave.get_permanent_variable(var_or_name)
-
-        unless @slave.elisp_eval("(type-of #{@elisp_variable})") == :buffer
-          raise ArgumentError, "#{@elisp_variable} isn't a buffer"
+      if args[0].kind_of?(Symbol)
+        @elisp_variable = @slave.get_permanent_variable(args[0])
+        elisp_type= ""
+        self.class.to_s.split("::").last.split(//).each_with_index do |char, index|
+          elisp_type << char.downcase
+          unless index==0 || char == char.downcase
+            elisp_type << "-"
+          end
         end
-      elsif var_or_name.kind_of?( String )
-        @slave.elisp_execute("(generate-new-buffer #{var_or_name.to_elisp})")
-        @elisp_variable = @slave.get_permanent_variable(Relisp::Slave::PREVIOUS_ELISP_RESULT)
+
+        unless @slave.elisp_eval("(type-of #{@elisp_variable})") == elisp_type.to_sym
+          raise ArgumentError, "#{@elisp_variable} isn't a #{elisp_type}"
+        end
       else
-        raise ArgumentError
+        @elisp_variable = @slave.new_elisp_variable
+        yield args
       end
+    end
+  
+    attr_reader :slave, :elisp_variable
+
+    def to_elisp
+      @elisp_variable
+    end
+  end
+
+  # A Buffer object is a proxy to an Emacs buffer.
+  #
+  class Buffer < Proxy
+
+    # _args_ can be any of these forms:
+    # * (_symbol_, <em>slave = Relisp.default_slave</em>)
+    # * (_string_, <em>slave = Relisp.default_slave</em>)
+    # * (<em>slave = Relisp.default_slave</em>)
+    #
+    # When a _symbol_ is given it is considered to be the name of a
+    # pre-existing bufer in the _slave_ process.  Otherwise a new,
+    # buffer is created (<tt>generate-new-buffer</tt>).  The name is
+    # _string_, if given, and a variant of "relisp-buffer" otherwise.
+    #
+    def initialize(*args)
+      super do |args|
+        name = args[0] ? args[0] : "relisp-buffer"
+        raise ArgumentError unless name.kind_of?(String)
+        @slave.elisp_execute( "(setq #{@elisp_variable} (generate-new-buffer #{name.to_elisp}))" )      
+      end
+    end
+
+    # Return the name of Buffer, as a string (<tt>buffer-name</tt>).
+    def name
+      @slave.buffer_name(@elisp_variable.value)
+    end
+
+    # Save the buffer in its visited file, if it has been modified.
+    #
+    def save
+      @slave.elisp_eval <<-EOM
+        (save-excursion
+          (set-buffer #{@elisp_variable})
+          (save-buffer))
+      EOM
+    end
+  end
+
+  # A Marker object is a proxy to an Emacs marker.
+  #
+  class Marker < Proxy
+    def self.from_elisp(object)
+      new(object[:variable], object[:slave])
+    end
+
+    attr_reader :slave, :elisp_variable
+
+    # _args_ can be any of these forms:
+    # * (_symbol_, <em>slave = Relisp.default_slave</em>)
+    # * (<em>slave = Relisp.default_slave</em>)
+    #
+    # When a _symbol_ is given it is considered to be the name of a
+    # pre-existing marker in the _slave_ process.  Otherwise a new,
+    # empty marker is created (<tt>make-marker</tt>).
+    #
+    def initialize(*args)
+      super do 
+        @slave.elisp_execute( "(setq #{@elisp_variable} (make-marker))" )
+      end
+    end
+
+    # Return a newly allocated marker which does not point at any
+    # position (<tt>make-marker</tt>).
+    #
+    def self.make(slave = Relisp.default_slave)
+      slave.make_marker
     end
 
     def to_elisp
       @elisp_variable
     end
-
-    # Return the name of the buffer.
-    #
-    def name
-      @slave.elisp_eval "(buffer-name #{@elisp_variable})"
-    end
   end
-
 end
 

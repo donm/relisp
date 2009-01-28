@@ -37,6 +37,27 @@ module TestRelisp
       buffer = @emacs.elisp_eval( "(create-file-buffer \"#{test_buffer_name}\") " )
       assert_equal test_buffer_name, buffer.name
     end
+  end
+
+  class TestMarker < Test::Unit::TestCase
+    def setup
+      @emacs = Relisp::ElispSlave.new
+    end
+
+    def test_class_from_elisp
+      assert_kind_of Relisp::Marker, @emacs.point_marker
+      assert @emacs.elisp_eval( "(equal #{@emacs.point_marker.to_elisp} (point-marker))" )
+      assert_kind_of Relisp::Marker, Relisp::Marker.new
+    end
+
+    def test_class_make
+      assert_kind_of Relisp::Marker, Relisp::Marker.make
+    end
+
+    def test_to_elisp
+      assert_equal :marker, @emacs.elisp_eval( "(type-of #{@emacs.point_marker.to_elisp})" )
+    end
+
 
   end
 end

@@ -72,12 +72,6 @@ module TestRelisp
       assert_equal test_array, @emacs.test_array
     end
 
-    def test_method_missing
-      assert_equal 6, @emacs.+(1, 2, 3)
-      assert_raise NameError do
-        @emacs.utter_nonsense
-      end
-    end
   end
 end
 

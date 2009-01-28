@@ -110,8 +110,29 @@ module Relisp
     def to_elisp
       "'" + self.to_s
     end
+
+    def value
+      VariableValue.new(self)
+    end
   end
 
+  # This exists so that the value of a Relisp::Symbol type can be
+  # conveniently passed to elisp.
+  #   
+  #   @slave.buffer_name(@elisp_variable)
+  #      => Relisp::ElispError: Wrong type argument: bufferp, --relisp--variable--1
+  #   @slave.buffer_name(@elisp_variable.value)
+  #      => "my buffer"
+  #
+  class VariableValue
+    def initialize(variable)
+      @variable = variable
+    end
+
+    def to_elisp
+      @variable.to_s
+    end
+  end
 
   class Cons < Array
     def self.from_elisp(object)

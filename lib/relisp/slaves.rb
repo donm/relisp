@@ -158,25 +158,6 @@ module Relisp
       end
     end
 
-    # Forward any missing method to elisp, writing the function and
-    # arguments in prefix notation (calling the +to_elisp+ method of
-    # each of the _args_).  
-    #
-    # This automatically allows access to a large portion of elisp
-    # functions a rubyish way.  
-    #
-    def method_missing(function, *args) # :doc:
-      function = function.to_s.gsub('_', '-')
-      unless elisp_eval("(functionp '#{function})")
-        raise NameError, "#{function} is not an elisp function"
-      end
-
-      elisp_eval('(' + 
-                 function + ' ' + 
-                 args.map{|a| a.to_elisp}.join(' ') +
-                 ')')
-    end
-    
     public
     
     # Creates a method in the slave that is a reference to the
