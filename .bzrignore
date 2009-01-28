@@ -1,3 +1,4 @@
 *.elc
 doc/
 pkg/
+coverage/

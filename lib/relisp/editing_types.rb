@@ -42,11 +42,21 @@
 
 module Relisp
 
+  # Proxy contains the code that creates a wrapper around a variable
+  # in emacs.
+  #
   class Proxy
     def self.from_elisp(object)
       new(object[:variable], object[:slave])
     end
 
+    # If the last argument is a Relisp::Slave, it gets pulled off and
+    # used as the slave; otherwise Relisp.default_slave is used.  If
+    # the first argument is a Symbol, it is assumed to be the name of
+    # an elisp variable which needs a proxy.  If the first argument
+    # isn't a Symbol, all of the arguments (except the last, if it was
+    # a Slave) are send off to the child to handle.
+    #
     def initialize(*args)
       @slave = if args.last.kind_of?(Relisp::Slave)
                  args.pop
@@ -80,7 +90,7 @@ module Relisp
     end
   end
 
-  # A Buffer object is a proxy to an Emacs buffer.
+  # A proxy to an Emacs buffer.
   #
   class Buffer < Proxy
 
@@ -118,14 +128,9 @@ module Relisp
     end
   end
 
-  # A Marker object is a proxy to an Emacs marker.
+  # A  proxy to an Emacs marker.
   #
   class Marker < Proxy
-    def self.from_elisp(object)
-      new(object[:variable], object[:slave])
-    end
-
-    attr_reader :slave, :elisp_variable
 
     # _args_ can be any of these forms:
     # * (_symbol_, <em>slave = Relisp.default_slave</em>)
@@ -148,9 +153,93 @@ module Relisp
       slave.make_marker
     end
 
-    def to_elisp
-      @elisp_variable
-    end
   end
+
+  # A  proxy to an Emacs window
+  #
+  class Window < Proxy
+
+    # _args_ must be of the form (_symbol_, <em>slave =
+    # Relisp.default_slave</em>)
+    #
+    # The _symbol_ argument is considered to be the name of a
+    # pre-existing window in the _slave_ process.  
+    #
+    def initialize(*args)
+      super do 
+        raise ArgumentError, "Cannot create Window without arguments."
+      end
+    end
+
+  end
+
+  # A  proxy to an Emacs Frame
+  #
+  class Frame < Proxy
+
+    # _args_ can be any of these forms:
+    # * (_symbol_, <em>slave = Relisp.default_slave</em>)
+    # * (<em>option_hash = {}</em>, <em>slave = Relisp.default_slave</em>)
+    # * (<em>slave = Relisp.default_slave</em>)
+    #
+    # When a _symbol_ is given it is considered to be the name of a
+    # pre-existing frame in the _slave_ process.  Otherwise a new,
+    # frame is created using any options in (<tt>new-frame</tt>).
+    #
+    # The _option_hash_ can specify the following
+    # [<tt>:name =></tt> _string_]	 The frame should be named _string_.
+    #
+    # [<tt>:width =></tt> _fixnum_]  The frame should be _fixnum_ characters in width.
+    # [<tt>:height =></tt> _fixnum_] The frame should be _fixnum_ text lines high.
+    #
+    # You cannot specify either :width or :height, you must use neither or both.
+    #
+    # [<tt>:minibuffer => true</tt>]	The frame should have a minibuffer.
+    # [<tt>:minibuffer => nil</tt>]	The frame should have no minibuffer.
+    # [<tt>:minibuffer => :only</tt>]	The frame should contain only a minibuffer.
+    # [<tt>:minibuffer =></tt> _window_]	The frame should use _window_ as its minibuffer window.
+    #
+    # [<tt>:"window-system" => nil</tt>]	The frame should be displayed on a terminal device.
+    # [<tt>:"window-system" => :x</tt>]	The frame should be displayed in an X window.
+    #
+    # [<tt>:terminal =></tt> _id_]         The frame should use the terminal identified by _id_.
+    #
+    def initialize(*args)
+      super do |args|
+        hash = args[0]
+        alist = ""
+        if hash && hash.size > 1
+          alist << "("
+          hash.each_pair do |key, val|
+            alist << "(#{key} . #{val.to_elisp}) "
+          end
+          alist << ")"
+        end
+
+        @slave.elisp_execute( "(setq #{@elisp_variable} (new-frame #{alist}))" )
+      end
+    end
+
+  end
+
+#   # A  proxy to an Emacs [OBJECT]
+#   #
+#   class [CLASS] < Proxy
+
+#     # _args_ can be any of these forms:
+#     # * (_symbol_, <em>slave = Relisp.default_slave</em>)
+#     # * (<em>slave = Relisp.default_slave</em>)
+#     #
+#     # When a _symbol_ is given it is considered to be the name of a
+#     # pre-existing [TYPE] in the _slave_ process.  Otherwise a new,
+#     # empty [TYPE] is created (<tt>[FUNCTION]</tt>).
+#     #
+#     def initialize(*args)
+#       super do 
+#         @slave.elisp_execute( "(setq #{@elisp_variable} (FUNCTION))" )
+#       end
+#     end
+#   end
+
 end
 

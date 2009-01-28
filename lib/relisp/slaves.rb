@@ -18,8 +18,7 @@
 # <http://www.gnu.org/licenses/>.
 #++
 #
-# TODO:
-# * maybe catch Errno::EPIPE to see if slave died
+# TODO: maybe catch Errno::EPIPE to see if slave died
 
 module Relisp
 

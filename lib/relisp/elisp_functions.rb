@@ -23,11 +23,13 @@
 module Relisp
   class Slave
 
-    # Save point, mark, and current buffer; execute block; restore
-    # those things.
+    # Save point, mark, and current buffer; execute a block of code;
+    # restore those things.
+    #
+    # This does not simply call the <tt>save-excursion</tt> function
+    # in elisp, it is a rewrite to accept a ruby block.
     def save_excursion 
       raise ArgumentError unless block_given?
-
       begin
         start_point  = point()
         start_mark   = mark()

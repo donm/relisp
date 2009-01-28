@@ -1370,7 +1370,6 @@ class Installer
   end
 
   def install_dir_conf(rel)
-    # FIXME: should not remove current config files
     # (rename previous file to .old/.org)
     install_files targetfiles(), "#{config('sysconfdir')}/#{rel}", 0644
   end

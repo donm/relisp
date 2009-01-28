@@ -16,4 +16,8 @@ def sample_ruby_method3
   Relisp::Buffer.new("ruby-created-buffer")
 end
 
+def sample_ruby_method4
+  Relisp::Frame.new({:width => 20, :height => 20, :minibuffer => nil})
+end 
+
 slave.start
