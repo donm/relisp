@@ -17,7 +17,7 @@ def sample_ruby_method3
 end
 
 def sample_ruby_method4
-  Relisp::Frame.new({:width => 20, :height => 20, :minibuffer => nil})
+  Relisp::Frame.new({:width => 80, :height => 20, :name => "ruby frame"})
 end 
 
 slave.start

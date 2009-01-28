@@ -68,10 +68,10 @@ module Relisp
         @elisp_variable = @slave.get_permanent_variable(args[0])
         elisp_type= ""
         self.class.to_s.split("::").last.split(//).each_with_index do |char, index|
-          elisp_type << char.downcase
           unless index==0 || char == char.downcase
             elisp_type << "-"
           end
+          elisp_type << char.downcase
         end
 
         unless @slave.elisp_eval("(type-of #{@elisp_variable})") == elisp_type.to_sym
@@ -167,13 +167,13 @@ module Relisp
     #
     def initialize(*args)
       super do 
-        raise ArgumentError, "Cannot create Window without arguments."
+        raise ArgumentError, "Cannot create Window using 'new' method."
       end
     end
 
   end
 
-  # A  proxy to an Emacs Frame
+  # A proxy to an Emacs frame
   #
   class Frame < Proxy
 
@@ -187,31 +187,44 @@ module Relisp
     # frame is created using any options in (<tt>new-frame</tt>).
     #
     # The _option_hash_ can specify the following
-    # [<tt>:name =></tt> _string_]	 The frame should be named _string_.
-    #
-    # [<tt>:width =></tt> _fixnum_]  The frame should be _fixnum_ characters in width.
-    # [<tt>:height =></tt> _fixnum_] The frame should be _fixnum_ text lines high.
+    # [<tt>:name =></tt> _string_] 
+    #      The frame should be named _string_.
+    # [<tt>:width =></tt> _fixnum_] 
+    #      The frame should be _fixnum_ characters in width.
+    # [<tt>:height =></tt> _fixnum_] 
+    #      The frame should be _fixnum_ text lines high.
     #
     # You cannot specify either :width or :height, you must use neither or both.
     #
-    # [<tt>:minibuffer => true</tt>]	The frame should have a minibuffer.
-    # [<tt>:minibuffer => nil</tt>]	The frame should have no minibuffer.
-    # [<tt>:minibuffer => :only</tt>]	The frame should contain only a minibuffer.
-    # [<tt>:minibuffer =></tt> _window_]	The frame should use _window_ as its minibuffer window.
+    # [<tt>:minibuffer => true</tt>]
+    #      The frame should have a minibuffer.
+    # [<tt>:minibuffer => nil</tt>]
+    #      The frame should have no minibuffer.
+    # [<tt>:minibuffer => :only</tt>] 
+    #      The frame should contain only a minibuffer.
+    # [<tt>:minibuffer =></tt> _window_] 
+    #      The frame should use _window_ as its minibuffer window.
     #
-    # [<tt>:"window-system" => nil</tt>]	The frame should be displayed on a terminal device.
-    # [<tt>:"window-system" => :x</tt>]	The frame should be displayed in an X window.
-    #
-    # [<tt>:terminal =></tt> _id_]         The frame should use the terminal identified by _id_.
+    # [<tt>:"window-system" => nil</tt>] 
+    #      The frame should be displayed on a terminal device.
+    # [<tt>:"window-system" => :x</tt>] 
+    #      The frame should be displayed in an X window.
+    # [<tt>:terminal =></tt> _id_] 
+    #      The frame should use the terminal identified by _id_.
     #
     def initialize(*args)
       super do |args|
         hash = args[0]
         alist = ""
         if hash && hash.size > 1
-          alist << "("
+          alist << "'("
           hash.each_pair do |key, val|
-            alist << "(#{key} . #{val.to_elisp}) "
+            val = if val.kind_of?(Symbol)
+                    val.value.to_elisp
+                  else
+                    val.to_elisp
+                  end
+            alist << "(#{key} . #{val.to_s}) "
           end
           alist << ")"
         end
@@ -221,6 +234,44 @@ module Relisp
     end
 
   end
+
+  # A  proxy to an Emacs window-configuration
+  #
+  class WindowConfiguration < Proxy
+
+    # _args_ must be of the form (_symbol_, <em>slave =
+    # Relisp.default_slave</em>)
+    #
+    # The _symbol_ argument is considered to be the name of a
+    # pre-existing window-configuration in the _slave_ process.  
+    #
+    def initialize(*args)
+      super do 
+        raise ArgumentError, "Cannot create WindowConfiguration using 'new' method."
+      end
+    end
+  end
+
+  # A  proxy to an Emacs frame-configuration
+  #
+  class FrameConfiguration < Proxy
+
+    # _args_ must be of the form (_symbol_, <em>slave =
+    # Relisp.default_slave</em>)
+    #
+    # The _symbol_ argument is considered to be the name of a
+    # pre-existing frame-configuration in the _slave_ process.  
+    #
+    def initialize(*args)
+      @elisp_type = :cons
+      @elisp_test_type_function = "frame-configuration-p"
+
+      super do 
+        raise ArgumentError, "Cannot create FrameConfiguration using 'new' method."
+      end
+    end
+  end
+
 
 #   # A  proxy to an Emacs [OBJECT]
 #   #

@@ -134,7 +134,70 @@ module Relisp
     end
   end
 
-  class Cons < Array
+  #
+  class Cons
+    def self.from_elisp(object)
+      slave = object[:slave]
+      object_variable = slave.get_permanent_variable(object[:variable])
+      car = slave.elisp_eval("(car #{object_variable})")
+      cdr = slave.elisp_eval("(cdr #{object_variable})")
+      new(car, cdr)
+    end
+
+    def initialize(car, cdr)
+      @car = car
+      @cdr = cdr
+    end
+
+    attr_accessor :car, :cdr
+
+    def to_list
+      list = Array.new
+      list << @car
+      cdr = @cdr
+      while cdr.kind_of?(Cons)
+        list << cdr.to_list
+        cdr = cdr.cdr
+      end
+      list << cdr
+      Relisp::List.new(list)
+    end
+
+    def inspect
+      to_s
+    end
+
+    def to_s
+      str = "(" << car.inspect
+      if @cdr
+        cdr = @cdr
+        while cdr.kind_of?(Cons)
+          str << " #{cdr.car.inspect}"
+          cdr = cdr.cdr
+        end
+        str << " . #{cdr.inspect}" unless cdr == nil
+      str << ")"
+      end
+    end
+
+    def to_elisp
+      str = "("
+      if @cdr
+        str << "#{@car.inspect}"
+        cdr = @cdr
+        while cdr.kind_of?(Cons)
+          str << " #{cdr.car.inspect}"
+          cdr = cdr.cdr
+        end
+        str << " . #{cdr.inspect}" unless cdr == nil
+      else
+        "#{@car.inspect}"
+      end
+      str << ")"
+    end
+  end
+
+  class List < Array
     def self.from_elisp(object)
       new(super(object))
     end
@@ -194,7 +257,9 @@ module Relisp
                               (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
       keys = slave.elisp_eval( keys_var )
       vals = slave.elisp_eval( vals_var )
-      keys ||= []
+      keys ||= nil
+      keys = keys.class
+      vals = vals.to_list
       hash = Hash.new
       keys.each_index do |i|
         hash[keys[i]] = vals[i]
@@ -266,7 +331,7 @@ end
 # to either Relisp::Cons or Relisp::Vector.
 #
 class Array
-  @@default_elisp_type = Relisp::Cons
+  @@default_elisp_type = Relisp::List
 
   # Converts either a 'cons' or 'vector' to a ruby array.
   def self.from_elisp(object)
@@ -312,3 +377,5 @@ class Array
     elisp_type.new(self).to_elisp
   end
 end
+
+

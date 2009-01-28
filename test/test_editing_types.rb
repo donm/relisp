@@ -97,7 +97,48 @@ module TestRelisp
     def test_class_from_elisp
       assert_kind_of Relisp::Window, @emacs.selected_window
     end
-
   end
+
+  class TestFrame < Test::Unit::TestCase
+    def setup
+      @emacs = Relisp::ElispSlave.new
+    end
+
+    def test_class_from_elisp
+      assert_kind_of Relisp::Frame, @emacs.selected_frame
+    end
+    
+    def test_initialize
+      new_frame = Relisp::Frame.new
+      assert_kind_of Relisp::Frame, new_frame
+      assert_equal :frame,  @emacs.elisp_eval( "(type-of #{new_frame.to_elisp})")
+      new_frame = Relisp::Frame.new({:width => 30, :height => 20})
+      assert_kind_of Relisp::Frame, new_frame
+      assert_equal :frame,  @emacs.elisp_eval( "(type-of #{new_frame.to_elisp})")
+    end
+  end
+
+  class TestWindowConfiguration < Test::Unit::TestCase
+    def setup
+      @emacs = Relisp::ElispSlave.new
+    end
+
+    def test_class_from_elisp
+      assert_kind_of Relisp::WindowConfiguration, @emacs.current_window_configuration
+    end
+  end
+
+  class TestFrameConfiguration < Test::Unit::TestCase
+    def setup
+      @emacs = Relisp::ElispSlave.new
+    end
+
+    def test_class_from_elisp
+#       @emacs.debugging do
+#       assert_kind_of Relisp::WindowConfiguration, @emacs.current_frame_configuration
+#       end
+    end
+  end
+
 end
 

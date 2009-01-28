@@ -69,12 +69,13 @@
 
 (defun relisp-log (text)
   "Insert TEXT at the end of `relisp-buffer-name', unless emacs is the slave."
-  (when relisp-emacs-master-p
-    (get-buffer-create relisp-buffer-name)
-    (unless (string-match (relisp-endofmessage-regexp) (relisp-strip text))
-      (set-buffer relisp-buffer-name)
-      (goto-char (point-max))
-      (insert text "\n"))))
+  (save-excursion
+    (when relisp-emacs-master-p
+      (get-buffer-create relisp-buffer-name)
+      (unless (string-match (relisp-endofmessage-regexp) (relisp-strip text))
+	(set-buffer relisp-buffer-name)
+	(goto-char (point-max))
+	(insert text "\n")))))
 
 (defun relisp-write-to-ruby (message)
   "Send MESSAGE to the ruby process."

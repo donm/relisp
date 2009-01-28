@@ -22,7 +22,7 @@ class TestArray < Test::Unit::TestCase
   end
 
   def test_class_from_elisp
-    assert "if from_elisp works for Vector and Cons, then this works"
+    assert "if from_elisp works for Vector and List, then this works"
   end
 
   def test_class_default_elisp_type_equals
@@ -31,12 +31,12 @@ class TestArray < Test::Unit::TestCase
     end
     Array.default_elisp_type = Relisp::Vector    
     assert_equal Relisp::Vector, Array.default_elisp_type
-    Array.default_elisp_type = Relisp::Cons
-    assert_equal Relisp::Cons, Array.default_elisp_type
+    Array.default_elisp_type = Relisp::List
+    assert_equal Relisp::List, Array.default_elisp_type
   end
 
   def test_to_elisp
-    Array.default_elisp_type = Relisp::Cons
+    Array.default_elisp_type = Relisp::List
     assert_equal :cons, @emacs.elisp_eval( "(type-of #{[1, 2, 3].to_elisp})" )
     Array.default_elisp_type = Relisp::Vector
     assert_equal :vector, @emacs.elisp_eval( "(type-of #{[1, 2, 3].to_elisp})" )
@@ -53,7 +53,7 @@ class TestArray < Test::Unit::TestCase
   end
 
   def test_elisp_type_equals
-    Array.default_elisp_type = Relisp::Cons
+    Array.default_elisp_type = Relisp::List
     array = [1, 2, 3]
     assert_equal :cons, @emacs.elisp_eval( "(type-of #{array.to_elisp})" )
     array.elisp_type = Relisp::Vector
@@ -125,17 +125,41 @@ module TestRelisp
     end
 
     def test_class_from_elisp
-      Array.default_elisp_type = Relisp::Cons
       result = @emacs.elisp_eval( "'(1 \"string\" 3 [4 5] )" )
-      assert result.kind_of?(Array)
       assert_equal Relisp::Cons, result.class
+      assert_equal 1, result.car
+      puts result
+      result = @emacs.elisp_eval( "'(1 . (5 . 8))" )
+      puts result
+#      assert_equal [4, 5], result[3]
+    end
+
+#     def test_to_elisp
+#       list = [1,2,'a',[4,5]]
+#       list.elisp_type = Relisp::Cons
+#       assert @emacs.elisp_eval( "(equal (list 1 2 \"a\" (list 4 5)) #{list.to_elisp})" )
+#       assert @emacs.elisp_eval( "(equal (list 1 2 \"a\" (list 4 5)) (ruby-eval \"[1, 2, 'a', [4, 5]]\"))" )
+#       assert_equal 1, @emacs.elisp_eval( "(car #{list.to_elisp})" )
+#     end
+   end
+
+  class TestList < Test::Unit::TestCase
+    def setup
+      @emacs = Relisp::ElispSlave.new
+    end
+
+    def test_class_from_elisp
+      Array.default_elisp_type = Relisp::List
+      result = @emacs.elisp_eval( "'(1 \"string\" 3 [4 5] )" )
+      assert_kind_of Array, result
+      assert_equal Relisp::List, result.class
       assert_equal "string", result[1]
       assert_equal [4, 5], result[3]
     end
 
     def test_to_elisp
       list = [1,2,'a',[4,5]]
-      list.elisp_type = Relisp::Cons
+      list.elisp_type = Relisp::List
       assert @emacs.elisp_eval( "(equal (list 1 2 \"a\" (list 4 5)) #{list.to_elisp})" )
       assert @emacs.elisp_eval( "(equal (list 1 2 \"a\" (list 4 5)) (ruby-eval \"[1, 2, 'a', [4, 5]]\"))" )
       assert_equal 1, @emacs.elisp_eval( "(car #{list.to_elisp})" )
