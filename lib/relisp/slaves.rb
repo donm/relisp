@@ -307,11 +307,12 @@ module Relisp
           @debug = true
           puts
           puts "-----------------"
-          yield
+          result = yield
         ensure
           @debug = debug_original_val
           puts "-----------------"
         end
+        return result
       else
         @debug = ! @debug
       end

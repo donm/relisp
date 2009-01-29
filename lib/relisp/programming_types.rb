@@ -54,9 +54,9 @@
 #
 # Every type in the first group obviously matches a ruby class except
 # for 'Cons' and 'Vector'.  The types that have an analogous ruby
-# class are mapped directly to that class.  'Cons' and 'Vector' are
-# mapped to a corresponding subclass of Array; the only difference
-# between the two is how they are translated back to elisp.
+# class are mapped directly to that class.  'Cons' is a kept in a
+# proxy object in the same way as the editting data types.  'Vector'
+# is mapped to a corresponding subclass of Array.
 #
 # Every ruby class that corresponds to a elisp data type is duplicated
 # inside the Relisp module with the rubyized version of the elisp
@@ -135,67 +135,113 @@ module Relisp
   end
 
   #
-  class Cons
-    def self.from_elisp(object)
-      slave = object[:slave]
-      object_variable = slave.get_permanent_variable(object[:variable])
-      car = slave.elisp_eval("(car #{object_variable})")
-      cdr = slave.elisp_eval("(cdr #{object_variable})")
-      new(car, cdr)
-    end
+#   class Cons < Proxy
+#     def self.from_elisp(object)
+#       slave = object[:slave]
+#       object_variable = slave.get_permanent_variable(object[:variable])
+#       car = slave.elisp_eval("(car #{object_variable})")
+#       cdr = slave.elisp_eval("(cdr #{object_variable})")
+#       new(car, cdr)
+#     end
 
-    def initialize(car, cdr)
-      @car = car
-      @cdr = cdr
-    end
+#     def initialize(car, cdr)
+#       @car = car
+#       @cdr = cdr
+#     end
 
-    attr_accessor :car, :cdr
+#     attr_accessor :car, :cdr
 
-    def to_list
-      list = Array.new
-      list << @car
-      cdr = @cdr
-      while cdr.kind_of?(Cons)
-        list << cdr.to_list
-        cdr = cdr.cdr
+#     def to_list
+#     end
+
+#     def inspect
+#       to_s
+#     end
+
+#     def to_s
+#       str = "(" + car.inspect
+#       if @cdr
+#         cdr = @cdr
+#         while cdr.kind_of?(Cons)
+#           str << " #{cdr.car.inspect}"
+#           cdr = cdr.cdr
+#         end
+#         str << " . #{cdr.inspect}" unless cdr == nil
+#       str << ")"
+#       end
+#     end
+
+#     def to_elisp
+#       str = "(cons #{@car.to_elisp} #{@cdr.to_elisp})"
+#     end
+#  end
+
+  # A proxy to an Emacs cons. If the cons is actually a list, the
+  # to_list method will convert it a subclass of Array so that all of
+  # the ruby Array stuff is available.
+  #
+  class Cons < Proxy
+
+    # _args_ must be of the form (_symbol_, <em>slave =
+    # Relisp.default_slave</em>)
+    #
+    # The _symbol_ argument is considered to be the name of a
+    # pre-existing window in the _slave_ process.  
+    #
+    def initialize(*args)
+      super do 
+        raise ArgumentError, "Cannot create Cons using 'new' method."
       end
-      list << cdr
-      Relisp::List.new(list)
     end
 
-    def inspect
-      to_s
+    def car
+      @slave.car(@elisp_variable.value)
     end
 
-    def to_s
-      str = "(" << car.inspect
-      if @cdr
-        cdr = @cdr
-        while cdr.kind_of?(Cons)
-          str << " #{cdr.car.inspect}"
-          cdr = cdr.cdr
-        end
-        str << " . #{cdr.inspect}" unless cdr == nil
-      str << ")"
+    def cdr
+      @slave.cdr(@elisp_variable.value)
+    end
+
+    # This function will NOT return true whenever the elisp function
+    # <tt>listp</tt> is true.  The elisp function is true whenever the
+    # object is a cons cell, but this method is true only when the
+    # cons can be unambiguously translated to an array; this condition
+    # is satisfied when the object in question could have been written
+    # using the elisp function +list+.
+    #
+    def list?
+      current_cdr = cdr
+      while current_cdr.kind_of?(Cons)
+        current_cdr = current_cdr.cdr
       end
-    end
-
-    def to_elisp
-      str = "("
-      if @cdr
-        str << "#{@car.inspect}"
-        cdr = @cdr
-        while cdr.kind_of?(Cons)
-          str << " #{cdr.car.inspect}"
-          cdr = cdr.cdr
-        end
-        str << " . #{cdr.inspect}" unless cdr == nil
+      if current_cdr.nil?
+        return true
       else
-        "#{@car.inspect}"
+        return false
       end
-      str << ")"
     end
+
+    # Translate the cons cell into a Relisp::List, a subclass of
+    # Array.  See list? for when this be done.
+    #
+    def to_list
+      list_array = []
+      list_array << car
+      current_cdr = cdr
+      while current_cdr.kind_of?(Cons)
+        list_array << current_cdr.car
+        current_cdr = current_cdr.cdr
+      end
+
+      if current_cdr.nil?
+        return Relisp::List.new(list_array)
+      else
+        return false
+      end
+    end
+
   end
+
 
   class List < Array
     def self.from_elisp(object)
@@ -258,7 +304,7 @@ module Relisp
       keys = slave.elisp_eval( keys_var )
       vals = slave.elisp_eval( vals_var )
       keys ||= nil
-      keys = keys.class
+      keys = keys.to_list
       vals = vals.to_list
       hash = Hash.new
       keys.each_index do |i|
@@ -328,7 +374,7 @@ end
 
 
 # The normal Array class is modified so that an array can be converted
-# to either Relisp::Cons or Relisp::Vector.
+# to either Relisp::List or Relisp::Vector.
 #
 class Array
   @@default_elisp_type = Relisp::List

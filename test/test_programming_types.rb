@@ -124,23 +124,30 @@ module TestRelisp
       @emacs = Relisp::ElispSlave.new
     end
 
-    def test_class_from_elisp
-      result = @emacs.elisp_eval( "'(1 \"string\" 3 [4 5] )" )
-      assert_equal Relisp::Cons, result.class
+    def test_car
+      result = @emacs.elisp_eval( "'(1 2 3)" )
       assert_equal 1, result.car
-      puts result
-      result = @emacs.elisp_eval( "'(1 . (5 . 8))" )
-      puts result
-#      assert_equal [4, 5], result[3]
     end
 
-#     def test_to_elisp
-#       list = [1,2,'a',[4,5]]
-#       list.elisp_type = Relisp::Cons
-#       assert @emacs.elisp_eval( "(equal (list 1 2 \"a\" (list 4 5)) #{list.to_elisp})" )
-#       assert @emacs.elisp_eval( "(equal (list 1 2 \"a\" (list 4 5)) (ruby-eval \"[1, 2, 'a', [4, 5]]\"))" )
-#       assert_equal 1, @emacs.elisp_eval( "(car #{list.to_elisp})" )
-#     end
+    def test_cdr
+      result = @emacs.elisp_eval( "'(1 2 3)" )
+      assert_equal @emacs.elisp_eval( "'(2 3)" ).to_list, result.cdr.to_list
+    end
+
+    def test_list_eh
+      result = @emacs.elisp_eval( "'(1 2 3)" )
+      assert result.list?
+      result = @emacs.elisp_eval( "'(1 . 2)" )      
+      assert ! result.list?
+    end
+
+    def test_to_list
+      result = @emacs.elisp_eval( "'(1 2 3)" ).to_list
+      assert_equal [1, 2, 3], result
+      result = @emacs.elisp_eval( "'(1 . 2)" )      
+      assert ! result.to_list
+    end
+
    end
 
   class TestList < Test::Unit::TestCase
@@ -150,7 +157,7 @@ module TestRelisp
 
     def test_class_from_elisp
       Array.default_elisp_type = Relisp::List
-      result = @emacs.elisp_eval( "'(1 \"string\" 3 [4 5] )" )
+      result = @emacs.elisp_eval( "'(1 \"string\" 3 [4 5] )" ).to_list
       assert_kind_of Array, result
       assert_equal Relisp::List, result.class
       assert_equal "string", result[1]

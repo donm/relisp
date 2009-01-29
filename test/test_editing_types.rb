@@ -16,7 +16,7 @@ module TestRelisp
       test_buffer_name = "*relisp-test-buffer*"
       buffer = @emacs.elisp_eval( "(create-file-buffer \"#{test_buffer_name}\") " )
       assert_kind_of Relisp::Buffer, buffer
-      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).map { |buffer| buffer.name } 
+      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).to_list.map { |buffer| buffer.name } 
       assert buffer_names.include?(test_buffer_name)
     end
 
@@ -44,7 +44,7 @@ module TestRelisp
       test_buffer_name = "*relisp-test-buffer*"
       buffer = @emacs.elisp_eval( "(create-file-buffer \"#{test_buffer_name}\") " )
       assert_kind_of Relisp::Buffer, buffer
-      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).map { |buffer| buffer.name } 
+      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).to_list.map { |buffer| buffer.name } 
       assert buffer_names.include?(test_buffer_name)
     end
 
@@ -134,9 +134,9 @@ module TestRelisp
     end
 
     def test_class_from_elisp
-#       @emacs.debugging do
-#       assert_kind_of Relisp::WindowConfiguration, @emacs.current_frame_configuration
-#       end
+#      assert_kind_of Relisp::WindowConfiguration, @emacs.current_frame_configuration
+      assert_kind_of Relisp::Cons, @emacs.current_frame_configuration
+      assert_equal :"frame-configuration", @emacs.current_frame_configuration.car
     end
   end
 

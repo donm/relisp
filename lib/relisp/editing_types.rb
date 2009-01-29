@@ -170,7 +170,6 @@ module Relisp
         raise ArgumentError, "Cannot create Window using 'new' method."
       end
     end
-
   end
 
   # A proxy to an Emacs frame
