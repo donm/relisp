@@ -43,7 +43,7 @@
 #   Macro Type::          A method of expanding an expression into another
 #                             expression, more fundamental but less pretty.
 #
-# And then these elisp types are ignored completely.
+# And then these elisp types are ignored completely, at least for now.
 #
 #   Char-Table Type::     One-dimensional sparse arrays indexed by characters.
 #   Bool-Vector Type::    One-dimensional arrays of `t' or `nil'.
@@ -182,24 +182,67 @@ module Relisp
   #
   class Cons < Proxy
 
-    # _args_ must be of the form (_symbol_, <em>slave =
-    # Relisp.default_slave</em>)
+    # _args_ can be any of these forms:
+    # * (_symbol_, <em>slave = Relisp.default_slave</em>)
+    # * (_car, _cdr_, <em>slave = Relisp.default_slave</em>)
     #
-    # The _symbol_ argument is considered to be the name of a
-    # pre-existing window in the _slave_ process.  
+    # When a _symbol_ is given it is considered to be the name of a
+    # pre-existing cons in the _slave_ process.  Otherwise a new cons
+    # is created with the given _car_ and _cdr
+    # (<tt>cons</tt>).
     #
     def initialize(*args)
-      super do 
-        raise ArgumentError, "Cannot create Cons using 'new' method."
+      super do |car, cdr|
+        @slave.elisp_execute( "(setq #{@elisp_variable} (cons #{car.to_elisp} #{cdr.to_elisp}))")
       end
     end
 
+    # Set the +car+ of Cons to be _newcar_ (+setcar+).
+    #
+    def car=(newcar)
+      @slave.setcar(@elisp_variable.variable, newcar)
+    end
+
+    # Set the +cdr+ of Cons to be _newcdr_. (+setcdr+).
+    #
+    def cdr=(newcdr)
+      @slave.setcdr(@elisp_variable.variable, newcdr)
+    end
+
+    # Return the +car+ of the Cons. (+car+).
+    #
     def car
       @slave.car(@elisp_variable.value)
     end
 
+    # Return the +cdr+ of the Cons. (+cdr+).
+    #
     def cdr
       @slave.cdr(@elisp_variable.value)
+    end
+
+    # Return the +car+ of the +car+ of the Cons. (+caar+)
+    #
+    def caar
+      @slave.caar(@elisp_variable.value)
+    end
+
+    # Return the +car+ of the +cdr+ of the Cons. (+cadr+)
+    #
+    def cadr
+      @slave.cadr(@elisp_variable.value)
+    end
+
+    # Return the +cdr+ of the +car+ of the Cons. (+cdar+)
+    #
+    def cdar
+      @slave.cadr(@elisp_variable.value)
+    end
+
+    # Return the +cdr+ of the +cdr+ of the Cons. (+cddr+)
+    #
+    def cddr
+      @slave.cadr(@elisp_variable.value)
     end
 
     # This function will NOT return true whenever the elisp function

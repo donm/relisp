@@ -19,7 +19,7 @@
 #++
 
 module Relisp
-  VERSION = '0.9.0'
+  VERSION = '0.9.1'
 
   class ElispError < RuntimeError; end
 end

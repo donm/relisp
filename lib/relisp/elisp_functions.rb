@@ -28,6 +28,7 @@ module Relisp
     #
     # This does not simply call the <tt>save-excursion</tt> function
     # in elisp, it is a rewrite to accept a ruby block.
+    #
     def save_excursion 
       raise ArgumentError unless block_given?
       begin
@@ -43,6 +44,42 @@ module Relisp
         set_mark(start_mark)
       end
     end
+
+    # Save the current buffer; execute a block of code;
+    # restore the current buffer.
+    #
+    # This does not simply call the <tt>with-current-buffer</tt>
+    # function in elisp, it is a rewrite to accept a ruby block.
+    #
+    def with_current_buffer
+      raise ArgumentError unless block_given?
+      begin
+        start_buffer = current_buffer()
+        yield
+      ensure
+        set_buffer(start_buffer)
+      end
+    end
+
+    # Create a temporary buffer, and evaluate a block of code there.
+    #
+    # This does not simply call the <tt>with-temp-buffer</tt> function
+    # in elisp, it is a rewrite to accept a ruby block.
+    #
+    def with_temp_buffer
+      raise ArgumentError unless block_given?
+      begin
+        start_buffer = current_buffer()
+        temp_buffer = Relisp::Buffer.new("*temp--relisp--buffer*", self)
+        yield
+      ensure
+        set_buffer(start_buffer)
+        temp_buffer.kill
+      end
+    end
+
+    # TODO:    save_selected_window
+    # TODO:    with_selected_window
 
     private
 

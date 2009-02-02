@@ -80,10 +80,6 @@ module TestRelisp
       assert_kind_of Relisp::Marker, Relisp::Marker.new
     end
 
-    def test_class_make
-      assert_kind_of Relisp::Marker, Relisp::Marker.make
-    end
-
     def test_to_elisp
       assert_equal :marker, @emacs.elisp_eval( "(type-of #{@emacs.point_marker.to_elisp})" )
     end
@@ -128,16 +124,34 @@ module TestRelisp
     end
   end
 
-  class TestFrameConfiguration < Test::Unit::TestCase
+  class TestProcess < Test::Unit::TestCase
     def setup
       @emacs = Relisp::ElispSlave.new
     end
-
+    
     def test_class_from_elisp
-#      assert_kind_of Relisp::WindowConfiguration, @emacs.current_frame_configuration
-      assert_kind_of Relisp::Cons, @emacs.current_frame_configuration
-      assert_equal :"frame-configuration", @emacs.current_frame_configuration.car
+      assert_kind_of Relisp::Process, @emacs.start_process("test", "test", "ls")
     end
+
+  end
+
+  class TestOverlay < Test::Unit::TestCase
+    def setup
+      @emacs = Relisp::ElispSlave.new
+    end
+    
+    def test_class_from_elisp
+      @emacs.insert("sometext")
+      assert_kind_of Relisp::Overlay,  @emacs.elisp_eval( "(make-overlay 1 3)")
+    end
+
+    def test_initialize
+      @emacs.insert("sometext")
+      new_overlay = Relisp::Overlay.new(1, 3)
+      assert_kind_of Relisp::Overlay, new_overlay
+      assert_equal :overlay,  @emacs.elisp_eval( "(type-of #{new_overlay.to_elisp})")
+    end
+
   end
 
 end

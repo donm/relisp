@@ -124,6 +124,11 @@ module TestRelisp
       @emacs = Relisp::ElispSlave.new
     end
 
+     def test_initialize
+       new_cons = Relisp::Cons.new(1, 2)
+       assert_equal :cons, @emacs.type_of(new_cons)
+     end
+
     def test_car
       result = @emacs.elisp_eval( "'(1 2 3)" )
       assert_equal 1, result.car

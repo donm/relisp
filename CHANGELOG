@@ -1,3 +1,11 @@
+== 0.9.1 / 2009-01-28
+
+* 2 major enhancements
+  * Cons are now proxy objects.  If the cons is a list, it can be
+    converted to a Relisp::List, a subclass of Array.
+  * Editing types are now subclasses of a Relisp::Proxy class that
+    takes care of creating the wrapping over the elisp variable.
+
 == 0.9.0 / 2009-01-25
 
 * 1 major enhancement
