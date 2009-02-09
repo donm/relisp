@@ -152,7 +152,7 @@ module Relisp
     # (<tt>rename-buffer</tt>).
     #
     def rename(newname, unique = false)
-      eval_in_buffer "(rename-buffer #{newname} #{unique.to_elisp})"
+      eval_in_buffer "(rename-buffer #{newname.to_elisp} #{unique.to_elisp})"
     end
 
     # Return name of file that the Buffer is visiting, or nil if none
@@ -266,6 +266,20 @@ module Relisp
       end
     end
     
+    def insert(object)
+      eval_in_buffer "(insert #{object.to_elisp})"
+    end
+
+    alias print insert
+    alias << insert
+
+    def puts(object="")
+      line_number = @slave.line_number_at_pos
+      insert object
+      if line_number == @slave.line_number_at_pos
+        insert "\n"
+      end
+    end
   end
 
   # A  proxy to an Emacs marker.

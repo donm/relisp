@@ -62,11 +62,39 @@ module TestRelisp
       assert_equal :buffer, @emacs.elisp_eval("(type-of #{buffer.to_elisp})")
     end
 
+    def test_set
+      b1_name = "*relisp-test-buffer1*"
+      b2_name = "*relisp-test-buffer2*"
+      b1 = Relisp::Buffer.new b1_name
+      b2 = Relisp::Buffer.new b2_name
+      
+      b1.set
+      assert_equal b1_name, @emacs.buffer_name
+      b2.set
+      assert_equal b2_name, @emacs.buffer_name
+    end
+
     def test_name
       test_buffer_name = "*relisp-test-buffer*"
       buffer = @emacs.elisp_eval( "(create-file-buffer \"#{test_buffer_name}\") " )
       assert_equal test_buffer_name, buffer.name
     end
+
+    def test_rename
+      b = Relisp::Buffer.new "*relisp-test-buffer*"
+      assert_equal b.name, "*relisp-test-buffer*"
+      b.insert "this text should stay here"
+      text = b.to_s
+      b.rename "*same-relisp-buffer*"
+      assert_equal b.name, "*same-relisp-buffer*"
+      assert_equal text, b.to_s
+    end
+
+    def test_filename
+      
+    end
+
+
   end
 
   class TestMarker < Test::Unit::TestCase
