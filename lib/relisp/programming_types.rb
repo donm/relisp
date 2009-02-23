@@ -193,20 +193,20 @@ module Relisp
     #
     def initialize(*args)
       super do |car, cdr|
-        @slave.elisp_execute( "(setq #{@elisp_variable} (cons #{car.to_elisp} #{cdr.to_elisp}))")
+        @slave.elisp_exec( "(setq #{@elisp_variable} (cons #{car.to_elisp} #{cdr.to_elisp}))")
       end
     end
 
     # Set the +car+ of Cons to be _newcar_ (+setcar+).
     #
     def car=(newcar)
-      @slave.setcar(@elisp_variable.variable, newcar)
+      @slave.setcar(@elisp_variable.value, newcar)
     end
 
     # Set the +cdr+ of Cons to be _newcdr_. (+setcdr+).
     #
     def cdr=(newcdr)
-      @slave.setcdr(@elisp_variable.variable, newcdr)
+      @slave.setcdr(@elisp_variable.value, newcdr)
     end
 
     # Return the +car+ of the Cons. (+car+).
@@ -339,9 +339,9 @@ module Relisp
       end
       keys_var = slave.new_elisp_variable
       vals_var = slave.new_elisp_variable
-      slave.elisp_execute( "(setq #{keys_var} nil)" )
-      slave.elisp_execute( "(setq #{vals_var} nil)" )
-      slave.elisp_execute( "(maphash (lambda (key val)
+      slave.elisp_exec( "(setq #{keys_var} nil)" )
+      slave.elisp_exec( "(setq #{vals_var} nil)" )
+      slave.elisp_exec( "(maphash (lambda (key val)
                               (setq #{keys_var} (append #{keys_var} (list key)))
                               (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
       keys = slave.elisp_eval( keys_var )
@@ -431,7 +431,7 @@ class Array
       object_array << object[:slave].elisp_eval( "(elt #{object_variable} #{i.to_elisp})" )
     end
 
-    object[:slave].elisp_execute( "(makunbound #{object_variable.to_elisp})" )
+    object[:slave].elisp_exec( "(makunbound #{object_variable.to_elisp})" )
     return object_array
   end
 

@@ -5,10 +5,12 @@ require 'test/unit' unless defined? $ZENTEST and $ZENTEST
 $:.unshift File.dirname(__FILE__) + "/../lib" 
 require 'relisp'
 
+EMACS = Relisp::ElispSlave.new unless defined? EMACS
+
 module TestRelisp
   class TestElispSlave < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_debugging
@@ -32,7 +34,7 @@ end
 module TestRelisp
   class TestSlave < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_elisp_eval
@@ -40,11 +42,11 @@ module TestRelisp
       assert_equal 3, @emacs.elisp_eval("(+ 1 2)")
     end
 
-    def test_elisp_execute
-      @emacs.elisp_execute("(setq blah 17)")
+    def test_elisp_exec
+      @emacs.elisp_exec("(setq blah 17)")
       assert_equal 17, @emacs.elisp_eval(:blah)
       assert_raise Relisp::ElispError do 
-        puts @emacs.elisp_execute("(relisp-nonsense-function 2)")
+        puts @emacs.elisp_exec("(relisp-nonsense-function 2)")
       end
 
     end

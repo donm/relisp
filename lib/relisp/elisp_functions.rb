@@ -35,7 +35,7 @@ module Relisp
         start_point  = point()
         start_mark   = mark()
         start_buffer = current_buffer()
-        start_active = elisp_execute( "mark-active" )
+        start_active = elisp_eval( "mark-active" )
         yield
       ensure
         set_buffer(start_buffer)

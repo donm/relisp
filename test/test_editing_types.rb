@@ -4,12 +4,22 @@ require 'test/unit' unless defined? $ZENTEST and $ZENTEST
 
 $:.unshift File.dirname(__FILE__) + "/../lib" 
 require 'relisp'
+require 'tempfile'
 
+class Tempfile
+  def self.new_path(name = 'tempfile')
+    file = Tempfile.new(name)
+    file.close
+    return file.path
+  end
+end
+
+EMACS = Relisp::ElispSlave.new unless defined? EMACS
 
 module TestRelisp
   class TestProxy < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
   
     def test_class_from_elisp
@@ -36,10 +46,12 @@ module TestRelisp
 
 
   class TestBuffer < Test::Unit::TestCase
+
     def setup
       @emacs = Relisp::ElispSlave.new
+      @buffer = Relisp::Buffer.new "*relisp-setup-test-buffer*"
     end
-  
+
     def test_class_from_elisp
       test_buffer_name = "*relisp-test-buffer*"
       buffer = @emacs.elisp_eval( "(create-file-buffer \"#{test_buffer_name}\") " )
@@ -91,7 +103,144 @@ module TestRelisp
     end
 
     def test_filename
+      file = Tempfile.new_path
+      assert_nil @buffer.filename
+      @buffer.filename = file
+      assert_equal file, @buffer.filename
+    end
+
+    def test_filename_equals
+      # test_filename
+    end
+
+    def test_modified_eh
+      file = Tempfile.new_path
+      assert ! @buffer.modified?
+      @buffer.insert "some text"
+      assert @buffer.modified?
+      @buffer.filename = file
+      @buffer.save
+      assert ! @buffer.modified?
+    end
+
+    def test_set_modified
+      file = Tempfile.new_path
+      assert ! @buffer.modified?
+      @buffer.set_modified
+      assert @buffer.modified?
+      @buffer.filename = file
+      @buffer.save
+      assert ! @buffer.modified?
+      @buffer.insert "some text"
+      @buffer.set_modified(false)
+      assert ! @buffer.modified?
+    end
+
+    def test_modified_equals
+      file = Tempfile.new_path
+      assert ! @buffer.modified?
+      @buffer.modified = true
+      assert @buffer.modified?
+      @buffer.filename = file
+      @buffer.save
+      assert ! @buffer.modified?
+      @buffer.insert "some text"
+      @buffer.modified = false
+      assert ! @buffer.modified?
+    end
+
+    def test_buffer_modified_tick
+      @buffer.insert "arokfv "
+      assert_equal 2, @buffer.modified_tick
+    end
+
+    def test_chars_modified_tick
+      @buffer.insert "arokfv "
+      assert_equal 2, @buffer.chars_modified_tick
+    end
+
+    def test_read_only_eh
+      assert ! @buffer.read_only?
+      @buffer.read_only=true
+      assert @buffer.read_only?
+    end
+
+    def test_read_only_equals
+      assert ! @buffer.read_only?
+      @buffer.read_only=true
+      assert @buffer.read_only?
+      assert_raise Relisp::ElispError do
+        @buffer.insert "A"
+      end
+      @buffer.read_only=false
+      assert ! @buffer.read_only?
+    end
+
+    def test_kill
+      assert @emacs.buffer_list.to_list.map {|b| b.name}.include?(@buffer.name)
+      @buffer.insert "a"
+      assert_raise RuntimeError do
+        @buffer.kill
+      end
+      @buffer.modified=false
+      @buffer.kill
+      assert ! @emacs.buffer_list.to_list.map {|b| b.name}.include?(@buffer.name)
+    end
+
+    def test_kill_bang
+      assert @emacs.buffer_list.to_list.map {|b| b.name}.include?(@buffer.name)
+      @buffer.insert "a"
+      assert @buffer.modified?
+      assert_nothing_raised do
+        @buffer.kill!
+      end
+    end
+
+    def alive_eh?
+      assert @buffer.alive
+      @buffer.kill!
+      assert ! @buffer.alive
+    end
+
+    def test_save
+      string = "text to write to file"
+      @buffer << string
+      assert_raises RuntimeError do
+        @buffer.save
+      end
+      file = Tempfile.new_path
+      @buffer.filename = file
+      @buffer.save
+    end
+
+    def test_write
+      file = Tempfile.new_path
+      string = "text to write to file"
+      @buffer.insert string
+      @buffer.write(file)
+      assert ! @buffer.modified?
+      assert_equal file, @buffer.filename
+    end
+
+    def test_size
+      assert_equal 0, @buffer.size
+      @buffer.insert "12345"
+      assert_equal 5, @buffer.size
+    end
+
+    def test_substring
       
+    end
+
+    def test_substring_no_properties
+      
+    end
+
+    def test_to_s
+      assert_equal "", @buffer.to_s
+      @buffer.insert "Some text"
+      @buffer.insert "another line"
+      assert_equal @buffer.to_s, "Some textanother line"
     end
 
 
@@ -99,7 +248,8 @@ module TestRelisp
 
   class TestMarker < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
+#      @emacs = Relisp::ElispSlave.new
     end
 
     def test_class_from_elisp
@@ -114,8 +264,11 @@ module TestRelisp
   end
 
   class TestWindow < Test::Unit::TestCase
+    @@emacs = EMACS
+
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = @@emacs
+#      @emacs = Relisp::ElispSlave.new
     end
 
     def test_class_from_elisp
@@ -144,7 +297,7 @@ module TestRelisp
 
   class TestWindowConfiguration < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp
@@ -154,7 +307,7 @@ module TestRelisp
 
   class TestProcess < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
     
     def test_class_from_elisp

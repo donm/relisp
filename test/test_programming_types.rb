@@ -15,10 +15,12 @@ require 'relisp'
 ### @emacs.elisp_eval( '(type-of (ruby-eval "hash"))' )
 # So the second way needs to be included in testing.
 
+EMACS = Relisp::ElispSlave.new unless defined? EMACS
 
 class TestArray < Test::Unit::TestCase
   def setup
-    @emacs = Relisp::ElispSlave.new
+    @emacs = EMACS
+#    @emacs = Relisp::ElispSlave.new
   end
 
   def test_class_from_elisp
@@ -63,7 +65,7 @@ end
 
 class TestClass < Test::Unit::TestCase
   def test_to_elisp
-    @emacs = Relisp::ElispSlave.new
+    @emacs = EMACS
     assert_equal :Array, @emacs.elisp_eval('(ruby-eval "[1, 2].class")')
   end
 end
@@ -81,7 +83,7 @@ end
 
 class TestNilClass < Test::Unit::TestCase
   def setup
-    @emacs = Relisp::ElispSlave.new
+    @emacs = EMACS
   end
 
   def test_class_from_elisp
@@ -96,7 +98,7 @@ end
 
 class TestObject < Test::Unit::TestCase
   def setup
-    @emacs = Relisp::ElispSlave.new
+    @emacs = EMACS
   end
 
   def test_class_from_elisp
@@ -110,7 +112,7 @@ end
 
 class TestTrueClass < Test::Unit::TestCase
   def setup
-    @emacs = Relisp::ElispSlave.new
+    @emacs = EMACS
   end
 
   def test_to_elisp
@@ -121,7 +123,8 @@ end
 module TestRelisp
   class TestCons < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
+#      @emacs = Relisp::ElispSlave.new
     end
 
      def test_initialize
@@ -134,9 +137,23 @@ module TestRelisp
       assert_equal 1, result.car
     end
 
+    def test_car_equals
+      result = @emacs.elisp_eval( "'(1 2 3)" )
+      result.car = 2
+      assert_equal 2, result.car
+    end
+
     def test_cdr
       result = @emacs.elisp_eval( "'(1 2 3)" )
       assert_equal @emacs.elisp_eval( "'(2 3)" ).to_list, result.cdr.to_list
+    end
+
+    def test_cdr_equals
+      result = @emacs.elisp_eval( "'(1 2 3)" )
+      list = @emacs.elisp_eval( "'(2 3 4 5)" )
+      result.cdr=list
+      new_result = @emacs.elisp_eval( "'(1 2 3 4 5)" )
+      assert_equal new_result.to_list, result.to_list
     end
 
     def test_list_eh
@@ -157,7 +174,7 @@ module TestRelisp
 
   class TestList < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp
@@ -180,7 +197,7 @@ module TestRelisp
 
   class TestFloat < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp
@@ -195,14 +212,14 @@ module TestRelisp
 
   class TestHashTable < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
-      @emacs.elisp_execute( '(setq ht (make-hash-table))' )
-      @emacs.elisp_execute( '(puthash "first" "john" ht)' )
-      @emacs.elisp_execute( '(puthash \'last "doe" ht)' )
-      @emacs.elisp_execute( '(setq subht (make-hash-table))' )
-      @emacs.elisp_execute( '(puthash "first" "john" subht)' )
-      @emacs.elisp_execute( '(puthash \'last "doe" subht)' )
-      @emacs.elisp_execute( '(puthash \'sub subht ht)' )
+      @emacs = EMACS
+      @emacs.elisp_exec( '(setq ht (make-hash-table))' )
+      @emacs.elisp_exec( '(puthash "first" "john" ht)' )
+      @emacs.elisp_exec( '(puthash \'last "doe" ht)' )
+      @emacs.elisp_exec( '(setq subht (make-hash-table))' )
+      @emacs.elisp_exec( '(puthash "first" "john" subht)' )
+      @emacs.elisp_exec( '(puthash \'last "doe" subht)' )
+      @emacs.elisp_exec( '(puthash \'sub subht ht)' )
     end
 
     def test_class_from_elisp
@@ -230,7 +247,7 @@ module TestRelisp
 
   class TestInteger < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp
@@ -245,7 +262,7 @@ module TestRelisp
 
   class TestString < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp
@@ -262,7 +279,7 @@ module TestRelisp
 
   class TestSymbol < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp
@@ -285,7 +302,7 @@ module TestRelisp
 
   class TestVector < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp

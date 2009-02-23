@@ -110,7 +110,7 @@ The Emacs process is managed by <tt>Relisp::ElispSlave</tt>.
   require 'relisp'
   emacs = Relisp::ElispSlave.new
 
-Calls are made calling <tt>elisp_eval</tt> and <tt>elisp_execute</tt>
+Calls are made calling <tt>elisp_eval</tt> and <tt>elisp_exec</tt>
 on the ElispSlave object.
 
   emacs.elisp_eval "(+ 1 2)"

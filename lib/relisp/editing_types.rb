@@ -119,7 +119,7 @@ module Relisp
       super do |args|
         name = args[0] ? args[0] : "relisp-buffer"
         raise ArgumentError unless name.kind_of?(String)
-        @slave.elisp_execute( "(setq #{@elisp_variable} (generate-new-buffer #{name.to_elisp}))" )
+        @slave.elisp_exec( "(setq #{@elisp_variable} (generate-new-buffer #{name.to_elisp}))" )
       end
     end
 
@@ -175,7 +175,7 @@ module Relisp
     def filename=(newname, along_with_file=false)
       # the second argument here inhibits confirmation in the case
       # where another buffer is already visiting _newname_.
-      eval_in_buffer "(set-visited-file-name #{newname} t #{along_with_file.to_elisp})"
+      eval_in_buffer "(set-visited-file-name #{newname.to_elisp} t #{along_with_file.to_elisp})"
     end
 
     def modified?
@@ -184,6 +184,10 @@ module Relisp
 
     def set_modified(flag=true)
       eval_in_buffer "(set-buffer-modified-p #{flag.to_elisp})"
+    end
+
+    def modified=(flag)
+      set_modified(flag)
     end
 
     def modified_tick
@@ -224,11 +228,12 @@ module Relisp
     # (<tt>save-buffer</tt>).
     #
     def save
-      eval_in_buffer "(save-buffer)"
+      raise "Attempt to save buffer with no filename." unless filename
+      eval_in_buffer "(with-output-to-string (save-buffer))"
     end
     
     def write(newfile)
-      eval_in_buffer "(write-file #{newfile}}"
+      eval_in_buffer "(with-output-to-string (write-file #{newfile.to_elisp}))"
     end
 
     def size
@@ -259,25 +264,32 @@ module Relisp
       new_window.buffer = self
     end
 
-    def method_missing(method, *args)
-      @slave.save_excursion do 
-        set
-        @slave.send(method, args)
-      end
-    end
-    
     def insert(object)
       eval_in_buffer "(insert #{object.to_elisp})"
     end
 
     alias print insert
-    alias << insert
 
     def puts(object="")
       line_number = @slave.line_number_at_pos
       insert object
       if line_number == @slave.line_number_at_pos
         insert "\n"
+      end
+    end
+
+    def <<(object)
+      @slave.save_excursion do 
+        eval_in_buffer "(goto-char (point-max))"
+        insert object
+      end
+      return self
+    end
+
+    def method_missing(method, *args)
+      @slave.save_excursion do 
+        set
+        @slave.send(method, *args)
       end
     end
   end
@@ -296,7 +308,7 @@ module Relisp
     #
     def initialize(*args)
       super do 
-        @slave.elisp_execute( "(setq #{@elisp_variable} (make-marker))" )
+        @slave.elisp_exec( "(setq #{@elisp_variable} (make-marker))" )
       end
     end
 
@@ -556,7 +568,7 @@ module Relisp
           alist << ")"
         end
 
-        @slave.elisp_execute( "(setq #{@elisp_variable} (make-frame #{alist}))" )
+        @slave.elisp_exec( "(setq #{@elisp_variable} (make-frame #{alist}))" )
       end
     end
 
@@ -1010,7 +1022,7 @@ module Relisp
     #
     def initialize(*args)
       super do |args|
-        @slave.elisp_execute( "(setq #{@elisp_variable} (make-overlay #{args.join(' ')}))" )
+        @slave.elisp_exec( "(setq #{@elisp_variable} (make-overlay #{args.join(' ')}))" )
       end
     end
 

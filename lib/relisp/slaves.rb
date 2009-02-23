@@ -44,14 +44,18 @@ module Relisp
     # each other.  This ruby library and the elisp code are tied to
     # one another so closely that I don't know if it matters, but it
     # still seemed like a bad idea to hard code the constants in both
-    # places.
+    # places.  Just make sure that the order in the elisp function
+    # <tt>relisp-get-constants</tt> matches the ruby method
+    # <tt>send_constants</tt>.
+    BEGIN_ANSWER_CODE      = '___WHATIS___'
     ANSWER_CODE            = '___FORTYTWO___'
     QUESTION_CODE          = '___TOBEORNOTTOBE___'
+    COMMAND_CODE           = '___TELLUSTELLUSNOW___'
     ERROR_CODE             = '___NO_THATSNOTTRUE_THATSIMPOSSIBLE___'
     ENDOFMESSAGE_REGEXP   = Regexp.new(ANSWER_CODE + '|' + QUESTION_CODE + '|' + ERROR_CODE)
     # Every time ruby asks elisp to evaluate an expression, the result
     # is saved in this variable so ruby can access it if necessary.
-    PREVIOUS_ELISP_RESULT = :"--relisp--previous--result"
+    PREVIOUS_ELISP_RESULT = :"--relisp--previous--result" 
     # A prefix for elisp variables created by ruby.
     VARIABLE_PREFIX        = '--relisp--variable--'
 
@@ -79,22 +83,46 @@ module Relisp
     #
     def get_permanent_variable(old_variable)
       permanent_variable = new_elisp_variable
-      elisp_execute( "(setq #{permanent_variable} #{old_variable})" )
+      elisp_exec( "(setq #{permanent_variable} #{old_variable})" )
       return permanent_variable
     end
 
     # Run _code_ in the elisp process.
     #
-    def elisp_execute(code)
+    def elisp_exec(code)
+      code = code.to_s # maybe code is a symbol or something
+      write_to_emacs code
+      write_to_emacs COMMAND_CODE
+      receive_answer
+    end
+    
+    # Run _code_ in the elisp process and return the result as the
+    # corresponding ruby object.  If the ruby object is not going to
+    # be used, use elisp_exec instead.
+    #
+    def elisp_eval(code)
       code = code.to_s # maybe code is a symbol or something
       write_to_emacs code
       write_to_emacs QUESTION_CODE
+      to_ruby(receive_answer)
+    end
 
+    private 
+
+    # Handle messages from emacs after <tt>elisp_exec</tt> or
+    # <tt>elisp_eval</tt> are called.
+    #
+    def receive_answer
       output = ''
       output_line = read_from_emacs
       until output_line.strip == ANSWER_CODE
         if output_line.strip == QUESTION_CODE
           write_to_emacs((eval(output, @local_binding)).to_elisp)
+          write_to_emacs ANSWER_CODE
+          output = ''
+        elsif output_line.strip == COMMAND_CODE
+          eval output, @local_binding
+#          write_to_emacs ""
           write_to_emacs ANSWER_CODE
           output = ''
         elsif output_line.strip == ERROR_CODE
@@ -108,17 +136,6 @@ module Relisp
       output.gsub!(/\n\z/, '')
       return output
     end
-    
-    # Run _code_ in the elisp process and return the result as the
-    # corresponding ruby object.  If the ruby object is not going to
-    # be used, use elisp_execute instead.
-    #
-    def elisp_eval(code)
-      result_string = elisp_execute(code)
-      to_ruby(result_string)
-    end
-
-    private 
 
     # Pass an elisp evaluation result to the appropriate Relisp class
     # for translation.  The first line of _result_string_ is the
@@ -128,8 +145,24 @@ module Relisp
     # be kept (in emacs) in the variable +PREVIOUS_ELISP_RESULT+.
     #
     def to_ruby(result_string)
+
+      # The result_string might have junk at the begining caused by
+      # whatever emacs sends to the echo area while evaluating ruby's
+      # instructions (it doesn't seem possible to get around this
+      # using with-output-to-string because the output from
+      # save-buffer and other functions is 'message'd).  It is also
+      # not possible to just pull off the last two elements, because
+      # sometimes the string representation of the result has newlines
+      # in it (Buffer#to_s, for example). Otherwise, you could just
+      # do:
+      #      object_string = result_string.pop
+      #      elisp_type    = result_string.pop
+
       result_string = result_string.split("\n")
-      elisp_type    = result_string.reverse!.pop
+      start_index = result_string.index(BEGIN_ANSWER_CODE) + 1
+      result_string = result_string[start_index..(result_string.size-1)]
+      
+      elisp_type = result_string.reverse!.pop
       object_string = result_string.reverse!.join("\n")
 
       object_info = {
@@ -150,8 +183,14 @@ module Relisp
 
     # Send the constants that ruby and elisp need to share.
     #
-    def pass_constants
-      [ANSWER_CODE, QUESTION_CODE, ERROR_CODE, PREVIOUS_ELISP_RESULT].each do |constant|
+    def send_constants 
+      [QUESTION_CODE, 
+       COMMAND_CODE, 
+       BEGIN_ANSWER_CODE, 
+       ANSWER_CODE, 
+       ERROR_CODE, 
+       PREVIOUS_ELISP_RESULT,
+      ].each do |constant|
         read_from_emacs
         write_to_emacs constant
       end
@@ -203,7 +242,7 @@ module Relisp
     #
     def initialize
       super
-      pass_constants
+      send_constants
 
       if block_given?
         yield self
@@ -221,13 +260,17 @@ module Relisp
         loop do
           code = ''
           input = read_from_emacs
-          until input.strip == QUESTION_CODE
+          until input.strip == QUESTION_CODE || input.strip == COMMAND_CODE
             code << input
             input = read_from_emacs
           end
           code.gsub!(/\n\z/, '')
           
-          write_to_emacs((eval code, @local_binding).to_elisp)
+          if input.strip == QUESTION_CODE
+            write_to_emacs((eval code, @local_binding).to_elisp)
+          else
+            eval(code, @local_binding)
+          end
           write_to_emacs ANSWER_CODE
         end
       rescue => dag_yo
@@ -291,7 +334,7 @@ module Relisp
 
       # gobble whatever output until emacs reports for duty
       until read_from_emacs.strip == "SEND CONSTANTS"; end
-      pass_constants
+      send_constants
     end
 
     attr_accessor :debug

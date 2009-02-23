@@ -10,10 +10,10 @@
 (ruby-eval "sample_ruby_method2")
 
 (member "ruby-created-buffer" (mapcar (lambda (a) (buffer-name a)) (buffer-list)))
-(ruby-eval "sample_ruby_method3")
+(ruby-exec "sample_ruby_method3")
 (member "ruby-created-buffer" (mapcar (lambda (a) (buffer-name a)) (buffer-list)))
 
-(ruby-eval "sample_ruby_method4")
+(ruby-exec "sample_ruby_method4")
 
 ;; How to start the ruby slave without a file. The rest of the
 ;; commands will work fine with a slave started either way.
@@ -48,9 +48,8 @@
 (ruby-eval "elisp_eval('(ruby-eval \"1 + 2\")')")
 
 ;; Variable persistence between calls:
-(ruby-eval "a = 5")
+(ruby-exec "a = 5")
 (ruby-eval "a + 1")
-
 
 
 
