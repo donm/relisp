@@ -47,15 +47,18 @@ module Relisp
     # places.  Just make sure that the order in the elisp function
     # <tt>relisp-get-constants</tt> matches the ruby method
     # <tt>send_constants</tt>.
-    BEGIN_ANSWER_CODE      = '___WHATIS___'
-    ANSWER_CODE            = '___FORTYTWO___'
-    QUESTION_CODE          = '___TOBEORNOTTOBE___'
-    COMMAND_CODE           = '___TELLUSTELLUSNOW___'
-    ERROR_CODE             = '___NO_THATSNOTTRUE_THATSIMPOSSIBLE___'
-    ENDOFMESSAGE_REGEXP   = Regexp.new(ANSWER_CODE + '|' + QUESTION_CODE + '|' + ERROR_CODE)
+    CONSTANTS = Array.new
+    CONSTANTS << QUESTION_CODE     = '___TOBEORNOTTOBE___'
+    CONSTANTS << COMMAND_CODE      = '___THOUSHALT___'
+    CONSTANTS << BEGIN_ANSWER_CODE = '___WHATIS___'
+    CONSTANTS << ANSWER_CODE       = '___FORTYTWO___'
+    CONSTANTS << ERROR_CODE        = '___NO_THATSNOTTRUE_THATSIMPOSSIBLE___'
+    TRANSMISSION_CODES_REGEXP   = Regexp.new(CONSTANTS.join('|'))
+                                       
     # Every time ruby asks elisp to evaluate an expression, the result
     # is saved in this variable so ruby can access it if necessary.
     PREVIOUS_ELISP_RESULT = :"--relisp--previous--result" 
+    CONSTANTS << PREVIOUS_ELISP_RESULT
     # A prefix for elisp variables created by ruby.
     VARIABLE_PREFIX        = '--relisp--variable--'
 
@@ -184,13 +187,7 @@ module Relisp
     # Send the constants that ruby and elisp need to share.
     #
     def send_constants 
-      [QUESTION_CODE, 
-       COMMAND_CODE, 
-       BEGIN_ANSWER_CODE, 
-       ANSWER_CODE, 
-       ERROR_CODE, 
-       PREVIOUS_ELISP_RESULT,
-      ].each do |constant|
+      CONSTANTS.each do |constant|
         read_from_emacs
         write_to_emacs constant
       end
@@ -368,7 +365,7 @@ module Relisp
     #
     def write_to_emacs(code)
       if @debug
-        puts "ruby> " + code.to_s unless code =~ ENDOFMESSAGE_REGEXP
+        puts "ruby> " + code.to_s unless code =~ TRANSMISSION_CODES_REGEXP
       end
       @emacs_pipe.puts code
     end
@@ -380,7 +377,7 @@ module Relisp
     def read_from_emacs
       output = @emacs_pipe.gets
       if @debug
-        puts "lisp> " + output unless output =~ ENDOFMESSAGE_REGEXP
+        puts "lisp> " + output unless output =~ TRANSMISSION_CODES_REGEXP
       end
       return output
     end

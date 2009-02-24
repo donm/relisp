@@ -280,7 +280,8 @@ module Relisp
 
     def <<(object)
       @slave.save_excursion do 
-        eval_in_buffer "(goto-char (point-max))"
+        set
+        @slave.elisp_eval "(goto-char (point-max))"
         insert object
       end
       return self

@@ -7,10 +7,15 @@ require 'relisp'
 require 'tempfile'
 
 class Tempfile
+  @@counter = 0
+
   def self.new_path(name = 'tempfile')
     file = Tempfile.new(name)
     file.close
-    return file.path
+    @@counter += 1
+    # The extra counter is to prevent two instances of emacs both
+    # working with the same file.
+    return file.path + @@counter.to_s
   end
 end
 
@@ -176,6 +181,13 @@ module TestRelisp
       assert ! @buffer.read_only?
     end
 
+    def bury
+      buffer = Relisp::Buffer.new('a')
+      assert_kind_of Relisp::Window, buffer.window
+      buffer.bury
+      assert_nil buffer.window
+    end
+
     def test_kill
       assert @emacs.buffer_list.to_list.map {|b| b.name}.include?(@buffer.name)
       @buffer.insert "a"
@@ -196,10 +208,10 @@ module TestRelisp
       end
     end
 
-    def alive_eh?
-      assert @buffer.alive
+    def test_alive_eh?
+      assert @buffer.alive?
       @buffer.kill!
-      assert ! @buffer.alive
+      assert ! @buffer.alive?
     end
 
     def test_save
@@ -229,11 +241,14 @@ module TestRelisp
     end
 
     def test_substring
-      
+      @buffer.insert "abcde"
+      assert_equal "bc", @buffer.substring(2,4)
     end
 
     def test_substring_no_properties
-      
+      # TODO: not really testing the "no properties" bit
+      @buffer.insert "abcde"
+      assert_equal "bc", @buffer.substring_no_properties(2,4)
     end
 
     def test_to_s
@@ -243,6 +258,36 @@ module TestRelisp
       assert_equal @buffer.to_s, "Some textanother line"
     end
 
+    def test_erase
+      @buffer.insert "Some text"
+      assert_equal @buffer.to_s, "Some text"
+      @buffer.erase
+      assert_equal @buffer.to_s, ""
+    end
+
+    def test_window
+      @emacs.switch_to_buffer(@buffer)
+      assert_kind_of Relisp::Window, @buffer.window
+    end
+
+    def test_insert
+      # TODO: test that objects besides Strings are inserted correctly
+    end
+
+    def test_puts
+      @buffer.puts   "abc"
+      @buffer.insert "def"
+      assert_equal "abc\ndef", @buffer.to_s
+    end
+
+    def test_append
+      @buffer.insert "abc"
+      @buffer.set
+      @emacs.goto_char(@emacs.point_min)
+      assert_equal 1, @emacs.point
+      @buffer << "def"
+      assert_equal "abcdef", @buffer.to_s
+    end
 
   end
 
