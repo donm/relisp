@@ -24,7 +24,6 @@ module Relisp
   class ElispError < RuntimeError; end
 end
 
-require 'relisp/editing_types'
-require 'relisp/elisp_functions.rb'
-require 'relisp/programming_types'
+require 'relisp/type_conversion'
+require 'relisp/elisp_functions'
 require 'relisp/slaves'

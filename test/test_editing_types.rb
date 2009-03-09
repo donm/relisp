@@ -306,6 +306,34 @@ module TestRelisp
     def test_to_elisp
       assert_equal :marker, @emacs.elisp_eval( "(type-of #{@emacs.point_marker.to_elisp})" )
     end
+
+    def test_position
+      marker = Relisp::Marker.new
+      assert_nil marker.position
+      # see test_set
+    end
+
+    def test_buffer
+      marker = Relisp::Marker.new
+      assert_nil marker.buffer
+      # see test_set
+    end
+
+    def test_insertion_type
+      marker = Relisp::Marker.new
+      assert_nil marker.insertion_type
+      marker.insertion_type=true
+      assert marker.insertion_type      
+    end
+
+    def test_set
+      marker = Relisp::Marker.new(@emacs)
+      buffer = Relisp::Buffer.new(@emacs)
+      marker.set(1, buffer.to_elisp)
+      assert_equal buffer, marker.buffer
+      assert_equal 1, marker.position
+    end
+
   end
 
   class TestWindow < Test::Unit::TestCase
@@ -318,6 +346,114 @@ module TestRelisp
 
     def test_class_from_elisp
       assert_kind_of Relisp::Window, @emacs.selected_window
+    end
+
+    def test_split
+      window = @emacs.selected_window
+      window.delete_others
+      window.split
+      assert_equal 2, @emacs.window_list.to_list.size
+    end
+
+    def test_horizontally
+      window = @emacs.selected_window
+      window.delete_others
+      old_width = window.width
+      begin
+        window.split_horizontally
+        assert old_width > window.width
+      rescue Relisp::ElispError => dag_yo
+        assert dag_yo.to_s =~ /width/
+      end
+    end
+
+    def test_vertically
+      window = @emacs.selected_window
+      window.delete_others
+      old_height = window.height
+      window.split_vertically
+      assert old_height > window.height
+    end
+
+    def test_alive_eh
+      window = @emacs.selected_window.split
+      window.delete
+      assert ! window.alive?
+    end
+
+    def test_delete_others
+      window = @emacs.selected_window
+      window.delete_others
+      window.split
+      assert @emacs.window_list.to_list.size > 1
+      window.delete_others
+      assert_equal 1, @emacs.window_list.to_list.size
+    end
+
+    def test_select
+      w1 = @emacs.selected_window
+      w1.delete_others
+      w2 = w1.split
+      w1.select
+      assert_equal @emacs.selected_window, w1
+      w2.select
+      assert_equal @emacs.selected_window, w2
+    end
+
+    def test_buffer
+      window = @emacs.selected_window
+      buffer1 = Relisp::Buffer.new(@emacs)
+      buffer2 = Relisp::Buffer.new(@emacs)
+      window.buffer=buffer1
+      assert_equal buffer1, window.buffer
+      window.buffer=buffer2
+      assert_equal buffer2, window.buffer
+    end
+
+    def test_dedicated
+      window = @emacs.selected_window
+      assert ! window.dedicated
+      window.dedicated = true
+      assert window.dedicated
+      window.dedicated = nil   
+    end
+
+    def test_point
+      w1 = @emacs.selected_window
+      w1.delete_others
+      b = Relisp::Buffer.new(@emacs)
+      w1.buffer=b
+      b.insert "12345"
+      w2 = w1.split
+      w2.select
+      @emacs.goto_char(@emacs.point_max)
+      assert_equal 6, @emacs.point
+      assert_equal 1, w1.point
+      w1.point = 3
+      assert_equal 3, w1.point
+      assert_equal 6, w2.point
+    end
+
+    def test_start
+      window = @emacs.selected_window
+      window.delete_others
+      window.buffer = Relisp::Buffer.new(@emacs)
+      assert_equal 1, window.start
+      size = window.height * window.width
+      window.buffer.insert "a" * size * 2
+      @emacs.goto_char(@emacs.point_max)
+      @emacs.elisp_eval("(recenter)") # Need to refresh the display in
+                                      # order to update 'buffer-start'
+                                      # and 'buffer-end'--I don't know
+                                      # why 'redisplay' doesn't work
+                                      # here
+      assert window.start > 1
+      assert ! window.visible?(1)
+      window.start = 1
+      @emacs.elisp_eval("(recenter)")
+      puts window.start
+      assert window.start == 1
+      assert window.visible?(1)
     end
   end
 

@@ -283,6 +283,8 @@ module Relisp
       end
     end
 
+    alias to_a to_list
+
   end
 
 
