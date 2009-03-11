@@ -1,3 +1,13 @@
+== 0.9.2 / 2009-03-09
+
+* 3 minor enhancements
+  * Added a 'ruby-exec' lisp function that executes ruby code taking
+    the time to translate the result.
+  * Improved the 'elisp_exec' ruby function.
+  * Wrote test cases that cover a good chunk of a Relisp::Proxy
+    classes.
+  * Fixed whatever bugs that were found by writing the tests.
+
 == 0.9.1 / 2009-01-28
 
 * 2 major enhancements

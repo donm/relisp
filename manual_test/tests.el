@@ -13,6 +13,57 @@
 ;; split this window vertically then horizontally
 (ruby-eval "window_split")
 
+;; should move text up and return nil
+(ruby-eval "window_scroll_up")
+
+;; should move text down and return t
+(ruby-eval "window_scroll_down")
+
+;; create some windows and move them horizontally and vertically
+(ruby-eval "window_shrink")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

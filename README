@@ -128,7 +128,7 @@ functions:
   emacs.*(5,2)                         # (* 5 2)
   emacs.create_file_buffer("blah.txt") # (create-file-buffer "blah.txt")
 
-Emacs editing types have (or will have) proxy classes:
+Emacs editing types have proxy classes with extensive functionality:
 
   buffer =  Relisp::Buffer.new("ruby-created-buffer")
      => #<Relisp::Buffer:0xb7c4784c>
@@ -144,7 +144,6 @@ use the <tt>ElispSlave#debugging</tt> method:
 
 == To Do
 
-* finish implementing emacs editting types (buffers, frames, etc.)
 * fix Windows bug(s)
 
 == Author

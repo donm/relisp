@@ -435,25 +435,52 @@ module TestRelisp
     end
 
     def test_start
-      window = @emacs.selected_window
+      # TODO: something is weird here.  maybe the visible? function
+      # doesn't work in batch mode
+
+      window = @emacs.selected_window 
       window.delete_others
       window.buffer = Relisp::Buffer.new(@emacs)
       assert_equal 1, window.start
-      size = window.height * window.width
-      window.buffer.insert "a" * size * 2
-      @emacs.goto_char(@emacs.point_max)
-      @emacs.elisp_eval("(recenter)") # Need to refresh the display in
+      window.buffer.insert "a\n" * window.height * 3
+      window.point = @emacs.point_max
+      @emacs.elisp_eval("(redisplay)") # Need to refresh the display in
                                       # order to update 'buffer-start'
                                       # and 'buffer-end'--I don't know
                                       # why 'redisplay' doesn't work
                                       # here
-      assert window.start > 1
+#      assert window.start > 1
       assert ! window.visible?(1)
+#      @emacs.elisp_eval "(set-window-start (selected-window) 1)"
       window.start = 1
-      @emacs.elisp_eval("(recenter)")
-      puts window.start
+
+#       @emacs.elisp_eval("(redisplay)")
+#       puts window.start
+#       puts window.end
+#       puts window.buffer.point_max
+#       assert window.visible?(181)      
+    end
+
+    def test_scroll_up
+      window = @emacs.selected_window 
+      window.delete_others
+      window.buffer.insert "a\n" * window.height * 3
+      window.scroll_up
+      assert window.start > 1
+      window.scroll_down
       assert window.start == 1
-      assert window.visible?(1)
+    end
+
+    def test_edges
+      window = @emacs.selected_window 
+      assert_equal 4, window.edges.size
+      assert_equal 4, window.inside_edges.size
+      assert_equal 4, window.pixel_edges.size
+      assert_equal 4, window.inside_pixel_edges.size
+    end
+
+    def test_frame
+      assert_kind_of Relisp::Frame, @emacs.selected_window.frame
     end
   end
 
@@ -473,6 +500,13 @@ module TestRelisp
       new_frame = Relisp::Frame.new({:width => 30, :height => 20})
       assert_kind_of Relisp::Frame, new_frame
       assert_equal :frame,  @emacs.elisp_eval( "(type-of #{new_frame.to_elisp})")
+    end
+
+    def test_alive_eh
+      f = Relisp::Frame.new
+      assert f.alive?
+      f.delete
+      assert ! f.alive?
     end
   end
 
@@ -495,6 +529,13 @@ module TestRelisp
       assert_kind_of Relisp::Process, @emacs.start_process("test", "test", "ls")
     end
 
+    def test_name
+      p = @emacs.start_process("process", "pbuffer", "ls")
+      assert_equal 'process', p.name
+      sleep 0.5
+      assert_equal :exit, p.status
+      assert_equal 0, p.exit_status
+    end
   end
 
   class TestOverlay < Test::Unit::TestCase
@@ -512,6 +553,30 @@ module TestRelisp
       new_overlay = Relisp::Overlay.new(1, 3)
       assert_kind_of Relisp::Overlay, new_overlay
       assert_equal :overlay,  @emacs.elisp_eval( "(type-of #{new_overlay.to_elisp})")
+    end
+
+    def test_start
+      @emacs.insert("sometext")
+      o = Relisp::Overlay.new(1, 3)
+      assert_equal 1, o.start
+      assert_equal 3, o.end
+      assert_equal @emacs.current_buffer, o.buffer
+      o.move(2,4)
+      assert_equal 2, o.start
+      assert_equal 4, o.end
+      o.start = 1
+      o.end = 3
+      assert_equal 1, o.start
+      assert_equal 3, o.end
+      o.delete
+      assert_nil o.start
+    end
+
+    def test_property
+      @emacs.insert("sometext")
+      o = Relisp::Overlay.new(1, 3)
+      o.priority = 2
+      assert_equal 2, o.priority
     end
 
   end

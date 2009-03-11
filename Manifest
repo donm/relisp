@@ -7,10 +7,13 @@ examples/elisp_master/elisp_master.el
 examples/elisp_master/ruby_slave
 examples/ruby_master/ruby_master_example
 lib/relisp.rb
-lib/relisp/editing_types.rb
 lib/relisp/elisp_functions.rb
-lib/relisp/programming_types.rb
 lib/relisp/slaves.rb
+lib/relisp/type_conversion.rb
+lib/relisp/type_conversion/editing_types.rb
+lib/relisp/type_conversion/programming_types.rb
+manual_test/tests.el
+manual_test/tests.rb
 setup.rb
 src/relisp.el
 src/relisp.elc

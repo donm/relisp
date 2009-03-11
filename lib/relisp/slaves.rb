@@ -271,7 +271,12 @@ module Relisp
           write_to_emacs ANSWER_CODE
         end
       rescue => dag_yo
-        write_to_emacs dag_yo
+        msg = dag_yo.message + "\n"
+        dag_yo.backtrace.each do |b|
+          msg << "  " + b + "\n" 
+        end
+        write_to_emacs(msg)
+        #write_to_emacs(dag_yo.message)
         write_to_emacs ERROR_CODE
         retry
       end

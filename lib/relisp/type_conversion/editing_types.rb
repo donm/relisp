@@ -414,8 +414,8 @@ module Relisp
       call_on_self :set_window_vscroll, lines
     end
 
-    def vscroll_in_pixels=(lines)
-      call_on_self :set_window_vscroll, lines, true
+    def vscroll_in_pixels=(pixels)
+      call_on_self :set_window_vscroll, pixels, true
     end
 
     def scroll_left(count=nil)
@@ -671,11 +671,11 @@ module Relisp
     end
 
     def fullscreen
-      get_parameter :width      
+      get_parameter :fullscreen
     end
 
     def fullscreen=(new_value)
-      set_parameter :width, new_value
+      set_parameter :fullscreen, new_value
     end
 
     def border_width
