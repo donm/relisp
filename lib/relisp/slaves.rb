@@ -324,9 +324,9 @@ module Relisp
                         "emacs --batch "
                       end
       emacs_command << cli_options
-      emacs_command << " -l #{elisp_path}"
+      emacs_command << " -l \"#{elisp_path}\""
       load_files.each do |file|
-        emacs_command << " -l #{file}"
+        emacs_command << " -l \"#{file}\""
       end
       emacs_command << " --eval '(relisp-become-slave)'"
       # In batch mode, emacs sends its normal output to stderr for
