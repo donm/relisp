@@ -142,10 +142,6 @@ use the <tt>ElispSlave#debugging</tt> method:
     emacs.elisp_eval "(+ 1 2)"    
   end 
 
-== To Do
-
-* fix Windows bug(s)
-
 == Author
 
 <don@ohspite.net>

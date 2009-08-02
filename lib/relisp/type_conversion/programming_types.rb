@@ -265,7 +265,7 @@ module Relisp
     end
 
     # Translate the cons cell into a Relisp::List, a subclass of
-    # Array.  See list? for when this be done.
+    # Array.  See list? for when this can be done.
     #
     def to_list
       list_array = []
