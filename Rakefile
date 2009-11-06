@@ -37,8 +37,12 @@ The gem is installed, and you can now call elisp from ruby.  But if
 you want to call ruby from emacs (and you do, right?) you need to go
 into the 'src' directory of this gem and copy 'relisp.el' and/or
 'relisp.elc' to your elisp folder (probably '~/.elisp').  Then you
-might want to add the line "(require 'relisp)" to your emacs
-initialization file (probably '~/.emacs').
+might want to add the lines
+
+  (autoload 'relisp-start-slave "relisp" nil t)
+  (autoload 'ruby-eval "relisp" nil t)
+
+to your emacs initialization file (probably '~/.emacs').
 
 If you don't know where to find the files for this gem, run the
 command "gem env gemdir".  Or you can download the tarball for this

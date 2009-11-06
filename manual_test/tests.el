@@ -1,7 +1,4 @@
-(progn
-  (relisp-stop-slave)
-  (setq relisp-ruby-slave-path "tests.rb")
-  (relisp-start-slave))
+(relisp-start-slave "tests.rb")
 
 ;; bury current buffer
 (ruby-eval "buffer_bury")
@@ -21,52 +18,3 @@
 
 ;; create some windows and move them horizontally and vertically
 (ruby-eval "window_shrink")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

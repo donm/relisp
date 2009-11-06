@@ -463,13 +463,13 @@ module Relisp
     end
 
     def enlarge(vertical, horizontal=0)
-      eval_in_window "(enlarge-window #{vertical.to_elisp})"
-      eval_in_window "(enlarge-window-horizontally #{horizontal.to_elisp})"
+      eval_in_window "(enlarge-window #{vertical.to_elisp})" unless vertical == 0
+      eval_in_window "(enlarge-window-horizontally #{horizontal.to_elisp})" unless horizontal == 0
     end
 
     def shrink(vertical, horizontal=0)
-      eval_in_window "(shrink-window #{vertical.to_elisp})"
-      eval_in_window "(shrink-window-horizontally #{horizontal.to_elisp})"
+      eval_in_window "(shrink-window #{vertical.to_elisp})" unless vertical == 0
+      eval_in_window "(shrink-window-horizontally #{horizontal.to_elisp})" unless horizontal == 0
     end
 
     def frame

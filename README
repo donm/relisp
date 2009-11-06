@@ -19,8 +19,12 @@ Then the library is installed, and you can call elisp from ruby.  But
 if you want to call ruby from emacs (and you do, right?) you need to
 go into the +src+ directory and copy <tt>relisp.el</tt> and/or
 <tt>relisp.elc</tt> to your elisp folder (probably <tt>~/.elisp</tt>).
-Then you might want to add the line <tt>(require 'relisp)</tt> to your
-emacs initialization file (probably <tt>~/.emacs'</tt>).
+Then you might want to add the lines
+
+  (autoload 'relisp-start-slave "relisp" nil t)
+  (autoload 'ruby-eval "relisp" nil t)
+
+to your emacs initialization file (probably <tt>~/.emacs'</tt>).
 
 If you don't know where to find the files for this gem, run the
 command <tt>gem env gemdir</tt>.  Or you can download the tarball for
@@ -92,12 +96,11 @@ The ruby slave file should look something like this:
   slave.start
 
 The call to <tt>slave.start</tt> should probably be the last line of
-the file since it starts an infinite loop.  The elisp code just
-needs to specify the ruby slave file before calling
+the file since it starts an infinite loop.  The elisp code just needs
+to specify the path to the ruby slave when calling
 <tt>relisp-start-slave</tt>:
 
-  (setq relisp-ruby-slave-path "ruby_slave")
-  (relisp-start-slave)
+  (relisp-start-slave "ruby_slave")
   (ruby-eval "sample_ruby_method")
 
 For debugging and curiousity, all of the messages between emacs and

@@ -134,7 +134,7 @@
   "Have ruby evaluate RUBY-CODE without returning the result.
 Reads input from the minibuffer unless an argument is
 given."
-  (interactive "ruby> ")
+  (interactive "Mruby> ")
   (let (message result)
     (if (and relisp-emacs-master-p (not (relisp-slave-alive-p)))
 	(relisp-start-slave))
@@ -155,7 +155,7 @@ given."
 The result is an elisp object equivalent to the ruby result of
 RUBY-CODE.  Reads input from the minibuffer unless an argument is
 given."
-  (interactive "ruby> ")
+  (interactive "Mruby> ")
   (let (message result)
     (if (and relisp-emacs-master-p (not (relisp-slave-alive-p)))
 	(relisp-start-slave))
@@ -254,17 +254,17 @@ relisp-become-slave."
   (setq relisp-error-code        (relisp-get-constant))
   (setq relisp-previous-result   (read (relisp-get-constant))))
 
-(defun relisp-start-slave nil
+(defun relisp-start-slave (&optional slave-path)
   "Start a ruby slave process to do emacs's bidding.
-If `relisp-ruby-slave-path' is bound, then that file is read and
-the Relisp::RubySlave object must be started there.  Otherwise
+If SLAVE-PATH is given, then that Ruby file is read and the
+Relisp::RubySlave object must be started in that file.  Otherwise
 emacs starts a ruby process and starts a RubySlave on its own."
   (interactive)
   (setq relisp-emacs-master-p t)
   (relisp-stop-slave)
   (setq relisp-ruby-output "")
-  (if (and (boundp 'relisp-ruby-slave-path) (file-exists-p relisp-ruby-slave-path))
-      (setq relisp-slave-process (start-process relisp-slave-name nil "ruby" relisp-ruby-slave-path))
+  (if (and slave-path (file-exists-p slave-path))
+      (setq relisp-slave-process (start-process relisp-slave-name nil "ruby" slave-path))
     (setq relisp-slave-process (start-process relisp-slave-name nil
 					      "ruby" 
 					      "-x"))
@@ -303,6 +303,7 @@ emacs starts a ruby process and starts a RubySlave on its own."
 
 (defun relisp-stop-slave nil
   "Kill the ruby slave process."
+  (interactive)
   (if (boundp 'relisp-slave-process)
       (delete-process relisp-slave-process)))
 

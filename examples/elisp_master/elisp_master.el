@@ -1,10 +1,7 @@
 ;; How to specify a file when running the slave.  The next few
 ;; `ruby-eval's call methods defined in the ruby slave file.
 
-(progn
-  (relisp-stop-slave)
-  (setq relisp-ruby-slave-path "ruby_slave")
-  (relisp-start-slave))
+(relisp-start-slave "ruby_slave")
 
 (ruby-eval "sample_ruby_method1")
 (ruby-eval "sample_ruby_method2")
@@ -18,10 +15,7 @@
 ;; How to start the ruby slave without a file. The rest of the
 ;; commands will work fine with a slave started either way.
 
-(progn
-  (relisp-stop-slave)
-  (makunbound 'relisp-ruby-slave-path)
-  (relisp-start-slave))
+(relisp-start-slave) ;; stops the old slave first
 
 ;; Basic functionality--note that return values are not strings but
 ;; actual elisp data types:

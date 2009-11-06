@@ -1,3 +1,15 @@
+== 1.0.1 / 2009-09-09
+
+* 1 tiny backwards-incompatible enhancement
+  * 'relisp-start-slave' now takes an optional argument for the path
+    to the ruby script, instead of relying on the variable
+    'relisp-ruby-slave-path'.  That was stupid.
+* 1 minor change
+  * Better instructions for installing elisp component.
+* 2 bug fixes
+  * Relisp::Window#shrink
+  * Relisp::Window#enlarge
+
 == 1.0.0 / 2009-05-05
 
 * Works on Windows
