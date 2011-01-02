@@ -31,7 +31,6 @@ def window_scroll_down
   selected_window.visible?(1)
 end
 
-
 def window_shrink
   w = selected_window
   w2 = w.split_vertically
@@ -60,7 +59,6 @@ def window_shrink
   w2.delete
   w3.delete
 end
-
 
 slave.start
 

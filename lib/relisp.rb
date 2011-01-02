@@ -24,6 +24,9 @@ module Relisp
   class ElispError < RuntimeError; end
 end
 
+$:.unshift File.dirname(__FILE__)
+
 require 'relisp/type_conversion'
 require 'relisp/elisp_functions'
 require 'relisp/slaves'
+

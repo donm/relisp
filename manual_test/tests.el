@@ -18,3 +18,4 @@
 
 ;; create some windows and move them horizontally and vertically
 (ruby-eval "window_shrink")
+

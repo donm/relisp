@@ -169,8 +169,7 @@ module TestRelisp
       result = @emacs.elisp_eval( "'(1 . 2)" )      
       assert ! result.to_list
     end
-
-   end
+  end
 
   class TestList < Test::Unit::TestCase
     def setup

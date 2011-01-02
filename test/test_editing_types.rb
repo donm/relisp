@@ -31,7 +31,7 @@ module TestRelisp
       test_buffer_name = "*relisp-test-buffer*"
       buffer = @emacs.elisp_eval( "(create-file-buffer \"#{test_buffer_name}\") " )
       assert_kind_of Relisp::Buffer, buffer
-      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).to_list.map { |buffer| buffer.name } 
+      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).to_list.map { |b| b.name } 
       assert buffer_names.include?(test_buffer_name)
     end
 
@@ -61,7 +61,7 @@ module TestRelisp
       test_buffer_name = "*relisp-test-buffer*"
       buffer = @emacs.elisp_eval( "(create-file-buffer \"#{test_buffer_name}\") " )
       assert_kind_of Relisp::Buffer, buffer
-      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).to_list.map { |buffer| buffer.name } 
+      buffer_names = @emacs.elisp_eval( '(buffer-list)' ).to_list.map { |b| b.name } 
       assert buffer_names.include?(test_buffer_name)
     end
 

@@ -6,9 +6,9 @@
 (ruby-eval "sample_ruby_method1")
 (ruby-eval "sample_ruby_method2")
 
-(member "ruby-created-buffer" (mapcar (lambda (a) (buffer-name a)) (buffer-list)))
+(member "ruby-created-buffer" (mapcar 'buffer-name (buffer-list)))
 (ruby-exec "sample_ruby_method3")
-(member "ruby-created-buffer" (mapcar (lambda (a) (buffer-name a)) (buffer-list)))
+(member "ruby-created-buffer" (mapcar 'buffer-name (buffer-list)))
 
 (ruby-exec "sample_ruby_method4")
 
@@ -29,13 +29,13 @@
 (type-of (ruby-eval (concat (relisp-to-ruby vect) ".reverse")))
 
 (setq list '(3 5 2 6 4 1))
-(ruby-eval (concat (relisp-to-ruby list) ".sort"))
-(type-of (ruby-eval (concat (relisp-to-ruby list) ".sort")))
+(ruby-eval (concat (relisp-to-ruby list) ".class"))
+(ruby-eval (concat (relisp-to-ruby list) ".to_list.class"))
+(ruby-eval (concat (relisp-to-ruby list) ".to_list.sort"))
+(type-of (ruby-eval (concat (relisp-to-ruby list) ".to_list")))
 
 (setq str "a couple of words")
 (ruby-eval (concat (relisp-to-ruby str) ".split"))
-
-(type-of (ruby-eval "{:name => 'john'}"))
 
 ;; Recursive calls:
 (ruby-eval "elisp_eval('(+ 1 2)')")

@@ -19,6 +19,8 @@
 #++
 #
 # TODO: maybe catch Errno::EPIPE to see if slave died
+# ! and ? for debugging info in ruby
+# add terminate constant and handler
 
 module Relisp
 
@@ -67,6 +69,7 @@ module Relisp
       # elisp it is in a context where any new variables set will drop
       # out of scope immediately.  The @local_binding is a way of
       # allowing these variables to persist through multiple calls.
+      @local_binding = binding
       @local_binding = nil
       @current_elisp_variable_num = '0'
       @debug = nil
@@ -245,15 +248,12 @@ module Relisp
         yield self
         start
       end
-
     end
 
     # Begin the main listening loop.
     #
     def start
       begin
-        @local_binding = binding
-        
         loop do
           code = ''
           input = read_from_emacs
@@ -275,7 +275,7 @@ module Relisp
         dag_yo.backtrace.each do |b|
           msg << "  " + b + "\n" 
         end
-        write_to_emacs(msg)
+        write_to_emacs msg.chomp
         #write_to_emacs(dag_yo.message)
         write_to_emacs ERROR_CODE
         retry
@@ -288,7 +288,8 @@ module Relisp
     # the ruby process.
     #
     def write_to_emacs(code)
-      puts code
+#      puts code
+      print code
     end
     
     # Messages appear on ruby's stdin after emacs sends them to ruby
@@ -298,7 +299,7 @@ module Relisp
       gets
     end
   end
-  
+
   # Provides an interface to an instance of emacs started as an IO
   # object.  See Relisp::Slave.
   #
@@ -315,8 +316,6 @@ module Relisp
       super()
       # load relisp.elc if available
       elisp_path = File.expand_path(File.join(File.dirname(__FILE__), '../../src/relisp'))
-
-      @local_binding = binding
 
       emacs_command = if RUBY_PLATFORM.downcase.include?('mswin')
                         "start emacs --batch "

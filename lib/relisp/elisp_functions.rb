@@ -83,23 +83,41 @@ module Relisp
 
     private
 
-    # Forward any missing method to elisp, writing the function and
-    # arguments in prefix notation (calling the +to_elisp+ method of
-    # each of the _args_).  
+    # Forward any missing method to elisp.  
+    #
+    # If a function with that name exists, write the rubyized (swap _
+    # for -) function and arguments in prefix notation (calling the
+    # +to_elisp+ method of each of the _args_).
+    #
+    # If a symbol with that name exists, return its value.  
+    #
+    # If the last char of the missing method is `=', set the symbol
+    # formed by the characters before the `=' to the first argument.
+    #
+    # For example:
+    #
+    # emacs = Relisp::ElispSlave.new
+    # puts emacs.concat "two", "words"
+    # emacs.a= 5
+    # puts emacs.a
     #
     # This automatically allows access to a large portion of elisp
-    # functions a rubyish way.  
+    # in a rubyish way.  
     #
     def method_missing(function, *args) # :doc:
       function = function.to_s.gsub('_', '-')
-      unless elisp_eval("(functionp '#{function})")
-        raise NameError, "#{function} is not an elisp function"
+      
+      if elisp_eval "(functionp '#{function})"
+        elisp_eval "(#{function} #{args.map{|a| a.to_elisp}.join(' ')})"
+      elsif elisp_eval "(boundp '#{function})"
+        elisp_eval "#{function}"
+      elsif function[function.size-1..function.size-1] == "="
+        elisp_eval "(setq #{function[0..function.size-2]} #{args[0].to_elisp})"
+      else
+        raise NameError, "#{function} is undefined in Ruby and is not an Elisp function"
       end
 
-      elisp_eval('(' + 
-                 function + ' ' + 
-                 args.map{|a| a.to_elisp}.join(' ') +
-                 ')')
+#      elisp_eval("(if (functionp '#{function}) (#{function} #{args.map{|a| a.to_elisp}.join(' ')}) #{function})")
     end
     
   end

@@ -57,13 +57,13 @@ module Relisp
     # * (<em>slave = Relisp.default_slave</em>)
     #
     # When a _symbol_ is given it is considered to be the name of a
-    # pre-existing bufer in the _slave_ process.  Otherwise a new
+    # pre-existing buffer in the _slave_ process.  Otherwise a new
     # buffer is created (<tt>generate-new-buffer</tt>).  The name is
     # _string_, if given, and a variant of "relisp-buffer" otherwise.
     #
     def initialize(*args)
-      super do |args|
-        name = args[0] ? args[0] : "relisp-buffer"
+      super do |sargs|
+        name = sargs[0] ? sargs[0] : "relisp-buffer"
         raise ArgumentError unless name.kind_of?(String)
         @slave.elisp_exec( "(setq #{@elisp_variable} (generate-new-buffer #{name.to_elisp}))" )
       end
@@ -522,8 +522,8 @@ module Relisp
     #      The frame should use the terminal identified by _id_.
     #
     def initialize(*args)
-      super do |args|
-        hash = args[0]
+      super do |sargs|
+        hash = sargs[0]
         alist = ""
         if hash && hash.size > 1
           alist << "'("
@@ -991,8 +991,8 @@ module Relisp
     # overlay is created (<tt>make-overlay</tt>).     
     #
     def initialize(*args)
-      super do |args|
-        @slave.elisp_exec( "(setq #{@elisp_variable} (make-overlay #{args.join(' ')}))" )
+      super do |sargs|
+        @slave.elisp_exec( "(setq #{@elisp_variable} (make-overlay #{sargs.join(' ')}))" )
       end
     end
 
