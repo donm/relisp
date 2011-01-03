@@ -45,5 +45,11 @@
 (ruby-exec "a = 5")
 (ruby-eval "a + 1")
 
-
+(relisp-stop-slave)
+(setq p1 (relisp-start-slave))
+(setq p2 (relisp-start-slave nil t)) ; doesn't stop the old slave first
+(ruby-exec "p=1" p1)
+(ruby-exec "p=2" p2)
+(ruby-eval "p" p1)
+(ruby-eval "p" p2)
 

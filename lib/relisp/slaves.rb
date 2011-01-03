@@ -70,7 +70,6 @@ module Relisp
       # out of scope immediately.  The @local_binding is a way of
       # allowing these variables to persist through multiple calls.
       @local_binding = binding
-      @local_binding = nil
       @current_elisp_variable_num = '0'
       @debug = nil
       Relisp.default_slave = self
