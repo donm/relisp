@@ -5,11 +5,12 @@ require 'test/unit' unless defined? $ZENTEST and $ZENTEST
 $:.unshift File.dirname(__FILE__) + "/../lib" 
 require 'relisp'
 
-EMACS = Relisp::ElispSlave.new unless defined? EMACS
+EMACS ||= Relisp::ElispSlave.new
 
 module TestRelisp
   class TestElispSlave < Test::Unit::TestCase
     def setup
+      # @emacs = Relisp::ElispSlave.new
       @emacs = EMACS
     end
 

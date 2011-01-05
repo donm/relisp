@@ -1,5 +1,5 @@
 #--
-# Copyright (C) 2009 <don@ohspite.net>
+# Copyright (C) 2009, 2010 Don March
 #
 # This file is part of Relisp.
 #
@@ -77,25 +77,26 @@
 # the +to_elisp+ method actually results in elisp code that, when run,
 # returns the appropriate object.
 
+Relisp::Integer   = Integer
+Relisp::Float     = Float
+Relisp::Symbol    = Symbol
+Relisp::String    = String
+Relisp::HashTable = Hash
+
 module Relisp
 
-  Integer = 1.class
   class Integer
     def self.from_elisp(object)
       object[:string].to_i
     end
   end
 
-
-  Float = (3.14).class
   class Float
     def self.from_elisp(object)
       object[:string].to_f
     end
   end
 
-
-  Symbol = :flag.class
   class Symbol
     def self.from_elisp(object)
       if object[:string] == 'nil'
@@ -103,11 +104,13 @@ module Relisp
       elsif object[:string] == 't'
         true
       else
+#        object[:string].gsub('-', '_').to_sym
         object[:string].to_sym
       end
     end
 
     def to_elisp
+#      "'" + self.to_s.gsub('_', '-')
       "'" + self.to_s
     end
 
@@ -133,48 +136,6 @@ module Relisp
       @variable.to_s
     end
   end
-
-  #
-#   class Cons < Proxy
-#     def self.from_elisp(object)
-#       slave = object[:slave]
-#       object_variable = slave.get_permanent_variable(object[:variable])
-#       car = slave.elisp_eval("(car #{object_variable})")
-#       cdr = slave.elisp_eval("(cdr #{object_variable})")
-#       new(car, cdr)
-#     end
-
-#     def initialize(car, cdr)
-#       @car = car
-#       @cdr = cdr
-#     end
-
-#     attr_accessor :car, :cdr
-
-#     def to_list
-#     end
-
-#     def inspect
-#       to_s
-#     end
-
-#     def to_s
-#       str = "(" + car.inspect
-#       if @cdr
-#         cdr = @cdr
-#         while cdr.kind_of?(Cons)
-#           str << " #{cdr.car.inspect}"
-#           cdr = cdr.cdr
-#         end
-#         str << " . #{cdr.inspect}" unless cdr == nil
-#       str << ")"
-#       end
-#     end
-
-#     def to_elisp
-#       str = "(cons #{@car.to_elisp} #{@cdr.to_elisp})"
-#     end
-#  end
 
   # A proxy to an Emacs cons. If the cons is actually a list, the
   # to_list method will convert it a subclass of Array so that all of
@@ -209,41 +170,18 @@ module Relisp
       @slave.setcdr(@elisp_variable.value, newcdr)
     end
 
-    # Return the +car+ of the Cons. (+car+).
-    #
-    def car
-      @slave.car(@elisp_variable.value)
-    end
+    ##
+    # :method: car
+    # car, cdr, cadr, etc. are taken care of by Proxy.method_missing.
 
-    # Return the +cdr+ of the Cons. (+cdr+).
-    #
-    def cdr
-      @slave.cdr(@elisp_variable.value)
-    end
+    ##
+    # :method: cdr
 
-    # Return the +car+ of the +car+ of the Cons. (+caar+)
-    #
-    def caar
-      @slave.caar(@elisp_variable.value)
-    end
+    ##
+    # :method: cadr
 
-    # Return the +car+ of the +cdr+ of the Cons. (+cadr+)
-    #
-    def cadr
-      @slave.cadr(@elisp_variable.value)
-    end
-
-    # Return the +cdr+ of the +car+ of the Cons. (+cdar+)
-    #
-    def cdar
-      @slave.cadr(@elisp_variable.value)
-    end
-
-    # Return the +cdr+ of the +cdr+ of the Cons. (+cddr+)
-    #
-    def cddr
-      @slave.cadr(@elisp_variable.value)
-    end
+    ##
+    # :method: cdar
 
     # This function will NOT return true whenever the elisp function
     # <tt>listp</tt> is true.  The elisp function is true whenever the
@@ -253,15 +191,21 @@ module Relisp
     # using the elisp function +list+.
     #
     def list?
-      current_cdr = cdr
-      while current_cdr.kind_of?(Cons)
-        current_cdr = current_cdr.cdr
+      # current_cdr = cdr
+      # while current_cdr.kind_of?(Cons)
+      #   current_cdr = current_cdr.cdr
+      # end
+      # return ! current_cdr.nil?
+
+      current_cdr_var = @slave.new_elisp_variable
+      @slave.elisp_exec "(setq #{current_cdr_var} (cdr #{to_elisp}))"
+      while @slave.elisp_eval "(consp #{current_cdr_var})"
+        @slave.elisp_exec "(setq #{current_cdr_var} (cdr #{current_cdr_var}))"
       end
-      if current_cdr.nil?
-        return true
-      else
-        return false
-      end
+      cdr = @slave.elisp_eval "#{current_cdr_var}"
+      @slave.elisp_exec "(makunbound '#{current_cdr_var})"
+
+      return ! cdr
     end
 
     # Translate the cons cell into a Relisp::List, a subclass of
@@ -269,24 +213,42 @@ module Relisp
     #
     def to_list
       list_array = []
-      list_array << car
-      current_cdr = cdr
-      while current_cdr.kind_of?(Cons)
-        list_array << current_cdr.car
-        current_cdr = current_cdr.cdr
+
+      # list_array << @slave.elisp_eval("(car #{to_elisp})")
+      # current_cdr = @slave.elisp_eval("(cdr #{to_elisp})")
+      # while current_cdr.kind_of?(Cons)
+      #   list_array << @slave.elisp_eval("(car #{current_cdr.to_elisp})")
+      #   current_cdr = @slave.elisp_eval("(cdr #{current_cdr.to_elisp})")
+      # end
+
+      # if current_cdr.nil?
+      #   return Relisp::List.new(list_array)
+      # else
+      #   return false
+      # end
+
+      current_cdr_var = @slave.new_elisp_variable
+
+      list_array << @slave.elisp_eval("(car #{to_elisp})")
+      @slave.elisp_exec "(setq #{current_cdr_var} (cdr #{to_elisp}))"
+      while @slave.elisp_eval "(consp #{current_cdr_var})"
+        list_array << @slave.elisp_eval("(car #{current_cdr_var})")
+        @slave.elisp_exec "(setq #{current_cdr_var} (cdr #{current_cdr_var}))"
       end
 
-      if current_cdr.nil?
-        return Relisp::List.new(list_array)
-      else
-        return false
+      cdr = @slave.elisp_eval "#{current_cdr_var}"
+
+      @slave.elisp_exec "(makunbound '#{current_cdr_var})"
+
+      if cdr
+        raise "Not a list: #{cdr}"
       end
+
+      return Relisp::List.new(list_array)
     end
 
     alias to_a to_list
-
   end
-
 
   class List < Array
     def self.from_elisp(object)
@@ -302,8 +264,6 @@ module Relisp
     end
   end
 
-
-  String = "words, words, words".class
   class String
     def self.from_elisp(object)
       new(eval(object[:string]))
@@ -313,7 +273,6 @@ module Relisp
       self.dump
     end
   end
-
 
   class Vector < Array
     def self.from_elisp(object)
@@ -329,8 +288,6 @@ module Relisp
     end
   end
 
-
-  HashTable = {:money => "power"}.class
   class HashTable
     def self.from_elisp(object)
       slave = object[:slave]
@@ -344,11 +301,11 @@ module Relisp
       slave.elisp_exec( "(setq #{keys_var} nil)" )
       slave.elisp_exec( "(setq #{vals_var} nil)" )
       slave.elisp_exec( "(maphash (lambda (key val)
-                              (setq #{keys_var} (append #{keys_var} (list key)))
-                              (setq #{vals_var} (append #{vals_var} (list val)))) #{object_variable})" )
-      keys = slave.elisp_eval( keys_var )
-      vals = slave.elisp_eval( vals_var )
-      keys ||= nil
+                 (setq #{keys_var} (append #{keys_var} (list key)))
+                 (setq #{vals_var} (append #{vals_var} (list val)))) 
+               #{object_variable})" )
+      keys = Cons.new(keys_var, slave)
+      vals = Cons.new(vals_var, slave)
       keys = keys.to_list
       vals = vals.to_list
       hash = Hash.new
@@ -356,9 +313,9 @@ module Relisp
         hash[keys[i]] = vals[i]
       end
 
-      slave.makunbound(object_variable)
-      slave.makunbound(keys_var)
-      slave.makunbound(vals_var)
+      [:object_variable, :keys_var, :vals_var]. each do |var|
+        slave.elisp_exec "(makunbound '#{var})"
+      end
 
       return hash
     end
@@ -374,7 +331,6 @@ module Relisp
   end
 
 end
-
 
 # Every object is given a default +to_elisp+ method, and classes get a
 # dummy +from_elisp+ method.
@@ -402,21 +358,18 @@ class NilClass
   end
 end
 
-
 class TrueClass
   def to_elisp
     "t"
   end
 end
 
-
 class FalseClass
-  # Falseness in elisp is represented by 'nil'.
+  # Because falseness in elisp is represented by 'nil'.
   def to_elisp
     nil.to_elisp
   end
 end
-
 
 # The normal Array class is modified so that an array can be converted
 # to either Relisp::List or Relisp::Vector.

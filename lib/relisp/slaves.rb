@@ -1,5 +1,5 @@
 #--
-# Copyright (C) 2009 <don@ohspite.net>
+# Copyright (C) 2009, 2010 Don March
 #
 # This file is part of Relisp.
 #
@@ -18,9 +18,8 @@
 # <http://www.gnu.org/licenses/>.
 #++
 #
+
 # TODO: maybe catch Errno::EPIPE to see if slave died
-# ! and ? for debugging info in ruby
-# add terminate constant and handler
 
 module Relisp
 
@@ -55,6 +54,7 @@ module Relisp
     CONSTANTS << BEGIN_ANSWER_CODE = '___WHATIS___'
     CONSTANTS << ANSWER_CODE       = '___FORTYTWO___'
     CONSTANTS << ERROR_CODE        = '___NO_THATSNOTTRUE_THATSIMPOSSIBLE___'
+    CONSTANTS << BEGIN_SLAVE_CODE  = '___LETSDOTHISLIKEBRUTUS___'
     TRANSMISSION_CODES_REGEXP   = Regexp.new(CONSTANTS.join('|'))
                                        
     # Every time ruby asks elisp to evaluate an expression, the result
@@ -95,7 +95,7 @@ module Relisp
     # Run _code_ in the elisp process.
     #
     def elisp_exec(code)
-      code = code.to_s # maybe code is a symbol or something
+      code = code.to_s # maybe code is nil or something
       write_to_emacs code
       write_to_emacs COMMAND_CODE
       receive_answer
@@ -127,7 +127,6 @@ module Relisp
           output = ''
         elsif output_line.strip == COMMAND_CODE
           eval output, @local_binding
-#          write_to_emacs ""
           write_to_emacs ANSWER_CODE
           output = ''
         elsif output_line.strip == ERROR_CODE
@@ -143,32 +142,29 @@ module Relisp
     end
 
     # Pass an elisp evaluation result to the appropriate Relisp class
-    # for translation.  The first line of _result_string_ is the
+    # for translation.  The first line of _result_ is the
     # 'type-of' the elisp object.  The line(s) after that are the text
     # version of the object.  In case the string representation isn't
     # enough information to translate the object, the result needs to
     # be kept (in emacs) in the variable +PREVIOUS_ELISP_RESULT+.
     #
-    def to_ruby(result_string)
+    def to_ruby(result)
 
-      # The result_string might have junk at the begining caused by
+      # The result might have junk at the beginning caused by
       # whatever emacs sends to the echo area while evaluating ruby's
       # instructions (it doesn't seem possible to get around this
       # using with-output-to-string because the output from
       # save-buffer and other functions is 'message'd).  It is also
       # not possible to just pull off the last two elements, because
       # sometimes the string representation of the result has newlines
-      # in it (Buffer#to_s, for example). Otherwise, you could just
-      # do:
-      #      object_string = result_string.pop
-      #      elisp_type    = result_string.pop
+      # in it (Buffer#to_s, for example).
 
-      result_string = result_string.split("\n")
-      start_index = result_string.index(BEGIN_ANSWER_CODE) + 1
-      result_string = result_string[start_index..(result_string.size-1)]
+      result = result.split("\n")
+      start_index = result.index(BEGIN_ANSWER_CODE) + 1
+      result = result[start_index..(result.size-1)]
       
-      elisp_type = result_string.reverse!.pop
-      object_string = result_string.reverse!.join("\n")
+      elisp_type = result.shift
+      object_string = result.join("\n")
 
       object_info = {
         :string   => object_string,
@@ -179,10 +175,11 @@ module Relisp
       # Just one more reason to love Ruby.  Call the Relisp class
       # formed by rubyizing the 'type-of' the result (i.e., hash-table
       # becomes HashTable).
-      ruby_type = (eval elisp_type.split("-").map { |a| a.capitalize }.join)
+      ruby_type = Relisp.const_get(elisp_type.split("-").map { |a| a.capitalize }.join)
       unless ruby_type.kind_of? Class
         raise "#{ruby_type} not implemented" 
       end
+
       ruby_type.from_elisp(object_info)
     end
 
@@ -191,8 +188,9 @@ module Relisp
     def send_constants 
       CONSTANTS.each do |constant|
         read_from_emacs
-        write_to_emacs constant
+        write_to_emacs constant.to_s + "\n"
       end
+      read_from_emacs
     end
 
     public
@@ -216,7 +214,7 @@ module Relisp
     #    emacs.elisp_eval('(ruby-eval "number")')  #  => 5
     #
     def provide(symbol, binding)
-      eval "@__#{symbol.to_s}__binding = binding"
+      instance_variable_set "@__#{symbol.to_s}__binding".to_sym, binding
 
       instance_eval <<-endstr
         def #{symbol.to_s}
@@ -232,12 +230,17 @@ module Relisp
   #
   class RubySlave < Slave
 
+    # Creates a new RubySlave and immediately starts it.
+    #
+    def self.start
+      self.new.start
+    end
+
     # Can be provided with a block, in which case the block is run in
-    # the context of the slave and then the slave is automatically
-    # started.  This makes slave methods available to the block
-    # without specifying an explicit receiver, and variables and
-    # functions defined in the block are in scope when requests from
-    # elisp are evaluated.
+    # the context of the slave.  This makes slave methods available to
+    # the block without specifying an explicit receiver, and variables
+    # and functions defined in the block are in scope when requests
+    # from elisp are later evaluated.
     #
     def initialize
       super
@@ -245,13 +248,16 @@ module Relisp
 
       if block_given?
         yield self
-        start
+        # start
       end
     end
 
     # Begin the main listening loop.
     #
     def start
+      write_to_emacs BEGIN_SLAVE_CODE
+      write_to_emacs ANSWER_CODE
+
       begin
         loop do
           code = ''
@@ -313,7 +319,7 @@ module Relisp
     #
     def initialize(cli_options = "--no-site-file --no-init-file", load_files = [])
       super()
-      # load relisp.elc if available
+      # leave off '.el' to load relisp.elc if available
       elisp_path = File.expand_path(File.join(File.dirname(__FILE__), '../../src/relisp'))
 
       emacs_command = if RUBY_PLATFORM.downcase.include?('mswin')

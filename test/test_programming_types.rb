@@ -128,8 +128,10 @@ module TestRelisp
     end
 
      def test_initialize
-       new_cons = Relisp::Cons.new(1, 2)
+       new_cons = Relisp::Cons.new(4, 5, @emacs)
        assert_equal :cons, @emacs.type_of(new_cons)
+       assert_equal 4, new_cons.car
+       assert_equal 5, new_cons.cdr
      end
 
     def test_car
@@ -167,7 +169,7 @@ module TestRelisp
       result = @emacs.elisp_eval( "'(1 2 3)" ).to_list
       assert_equal [1, 2, 3], result
       result = @emacs.elisp_eval( "'(1 . 2)" )      
-      assert ! result.to_list
+      assert_raise(RuntimeError) { result.to_list }
     end
   end
 

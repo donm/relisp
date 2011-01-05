@@ -488,7 +488,8 @@ module TestRelisp
 
   class TestFrame < Test::Unit::TestCase
     def setup
-      @emacs = Relisp::ElispSlave.new
+#      @emacs = Relisp::ElispSlave.new
+      @emacs = EMACS
     end
 
     def test_class_from_elisp

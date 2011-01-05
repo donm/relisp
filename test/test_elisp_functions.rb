@@ -28,7 +28,6 @@ module TestRelisp
       assert_equal start_point, @emacs.point
       assert_equal start_buffer.name, @emacs.current_buffer.name
     end
-
     def test_method_missing
       assert_equal 6, @emacs.+(1, 2, 3)
       assert_raise NameError do

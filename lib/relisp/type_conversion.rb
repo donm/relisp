@@ -1,3 +1,25 @@
+#--
+# Copyright (C) 2009, 2010 Don March
+#
+# This file is part of Relisp.
+#
+# Relisp is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#  
+# Relisp is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see
+# <http://www.gnu.org/licenses/>.
+#++
+#
+#
+
 module Relisp
 
   # Proxy contains the code that creates a wrapper around a variable
@@ -5,7 +27,8 @@ module Relisp
   #
   class Proxy
     def self.from_elisp(object)
-      new(object[:variable], object[:slave])
+      slave = object[:slave]
+      new(slave.get_permanent_variable(object[:variable]), slave)
     end
 
     # If the last argument is a Relisp::Slave, it gets pulled off and
@@ -23,7 +46,8 @@ module Relisp
                end
 
       if args[0].kind_of?(Symbol) && args[1].nil?
-        @elisp_variable = @slave.get_permanent_variable(args[0])
+#        @elisp_variable = @slave.get_permanent_variable(args[0])
+        @elisp_variable = args[0]
         elisp_type= ""
         self.class.to_s.split("::").last.split(//).each_with_index do |char, index|
           unless index==0 || char == char.downcase
@@ -47,10 +71,26 @@ module Relisp
       @elisp_variable
     end
 
+    def makunbound
+      @slave.makunbound @elisp_variable
+    end
+
+    def self.elisp_alias(ruby_name, elisp_name)
+      class_eval <<-EOM
+        def #{ruby_name}
+          call_on_self :#{elisp_name}
+        end
+      EOM
+    end
+
     private 
     
     def call_on_self(function, *args)
       @slave.send(function, @elisp_variable.value, *args)
+    end
+
+    def method_missing(function, *args)
+      call_on_self(function, *args)
     end
   end
 
@@ -58,3 +98,4 @@ end
 
 require 'relisp/type_conversion/editing_types'
 require 'relisp/type_conversion/programming_types'
+

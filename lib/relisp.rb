@@ -1,5 +1,5 @@
 #--
-# Copyright (C) 2009 <don@ohspite.net>
+# Copyright (C) 2009, 2010 Don March
 #
 # This file is part of Relisp.
 #
@@ -19,7 +19,7 @@
 #++
 
 module Relisp
-  VERSION = '1.0.1'
+  VERSION = '1.1.0'
 
   class ElispError < RuntimeError; end
 end

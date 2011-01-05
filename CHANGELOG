@@ -1,3 +1,17 @@
+== 1.1.0 / 2011-01-05
+
+* 2 major enhancements
+  * Multiple ruby slaves can be run from Emacs at once.  
+  * The method_missing stuff now retreives and sets elisp variables in
+    addition to calling functions.
+  * Ruby slaves can call elisp while starting up.
+* minor enhancements
+    * Less temporary variables created in elisp, and those that can be
+    are `makunbound'ed when they can be.
+  * Eval used in fewer places in ruby and elisp.
+  * New and better examples.
+  * Code is DRYer, prettier and sucks less in general.
+
 == 1.0.1 / 2009-09-09
 
 * 1 tiny backwards-incompatible enhancement

@@ -1,5 +1,5 @@
 #--
-# Copyright (C) 2009 <don@ohspite.net>
+# Copyright (C) 2009, 2010 Don March
 #
 # This file is part of Relisp.
 #
@@ -72,11 +72,11 @@ module Relisp
     private
 
     def eval_in_buffer(code)
-      @slave.elisp_eval <<-EOM
-         (save-excursion
-           (set-buffer #{@elisp_variable})
-           #{code})
-       EOM
+      @slave.elisp_eval <<EOM
+(save-excursion
+  (set-buffer #{@elisp_variable})
+  #{code})
+EOM
     end
 
     public
@@ -85,12 +85,11 @@ module Relisp
       @slave.set_buffer(@elisp_variable.value)
     end
     
+    ##
     # Return the name of Buffer, as a string (<tt>buffer-name</tt>).
     #
-    def name
-      call_on_self :buffer_name
-    end
- 
+    elisp_alias :name, :buffer_name
+
     # Change current buffer's name to _newname_ (a string).  If
     # _unique_ is nil, it is an error if a buffer named _newname_
     # already exists.  If _unique_ is non-nil, come up with a new name
@@ -101,12 +100,13 @@ module Relisp
       eval_in_buffer "(rename-buffer #{newname.to_elisp} #{unique.to_elisp})"
     end
 
+    alias name= rename
+
+    #
     # Return name of file that the Buffer is visiting, or nil if none
     # (<tt>buffer-file-name</tt>).
     #
-    def filename
-      call_on_self :buffer_file_name
-    end
+    elisp_alias :filename, :buffer_file_name
 
     # Change name of file visited in the Buffer to _newname_.  This
     # also renames the buffer to correspond to the new file.  The next
@@ -124,10 +124,6 @@ module Relisp
       eval_in_buffer "(set-visited-file-name #{newname.to_elisp} t #{along_with_file.to_elisp})"
     end
 
-    def modified?
-      call_on_self :buffer_modified_p
-    end
-
     def set_modified(flag=true)
       eval_in_buffer "(set-buffer-modified-p #{flag.to_elisp})"
     end
@@ -136,13 +132,14 @@ module Relisp
       set_modified(flag)
     end
 
-    def modified_tick
-      call_on_self :buffer_modified_tick
-    end
+    ##
+    elisp_alias :modified?, :buffer_modified_p
 
-    def chars_modified_tick
-      call_on_self :buffer_chars_modified_tick
-    end
+    ##
+    elisp_alias :modified_tick, :buffer_modified_tick
+
+    ##
+    elisp_alias :chars_modified_tick, :buffer_chars_modified_tick
 
     def read_only?
       eval_in_buffer "buffer-read-only"
@@ -169,9 +166,8 @@ module Relisp
       kill
     end
 
-    def alive?
-      call_on_self :buffer_live_p
-    end
+    ##
+    elisp_alias :alive?, :buffer_live_p
 
     # Save the buffer in its visited file, if it has been modified
     # (<tt>save-buffer</tt>).
@@ -185,9 +181,8 @@ module Relisp
       eval_in_buffer "(with-output-to-string (write-file #{newfile.to_elisp}))"
     end
 
-    def size
-      call_on_self :buffer_size
-    end
+    ##
+    elisp_alias :size, :buffer_size
 
     def substring(start_position, end_position)
       eval_in_buffer "(buffer-substring #{start_position} #{end_position})"
@@ -205,17 +200,15 @@ module Relisp
       eval_in_buffer "(erase-buffer)"      
     end
 
-    def window
-      call_on_self :get_buffer_window
-    end
+    ##
+    elisp_alias :window, :get_buffer_window
 
     def window=(new_window)
       new_window.buffer = self
     end
 
-    def windows
-      call_on_self :get_buffer_window_list
-    end
+    ##
+    elisp_alias :windows, :get_buffer_window_list
 
     def insert(object)
       eval_in_buffer "(insert #{object.to_elisp})"
@@ -252,7 +245,7 @@ module Relisp
     end
   end
 
-  # A  proxy to an Emacs marker.
+  # A proxy to an Emacs marker.
   #
   class Marker < Proxy
 
@@ -270,17 +263,14 @@ module Relisp
       end
     end
 
-    def position
-      call_on_self :marker_position
-    end
+    ##
+    elisp_alias :position, :marker_position
 
-    def buffer
-      call_on_self :marker_buffer
-    end
+    ##
+    elisp_alias :buffer, :marker_buffer
 
-    def insertion_type
-      call_on_self :marker_insertion_type
-    end
+    ##
+    elisp_alias :insertion_type, :marker_insertion_type
 
     def insertion_type=(type)
       @slave.elisp_eval( "(set-marker-insertion-type #{@elisp_variable} #{type.to_elisp})" )
@@ -294,7 +284,7 @@ module Relisp
     alias position= set
   end
 
-  # A  proxy to an Emacs window
+  # A proxy to an Emacs window
   #
   class Window < Proxy
 
@@ -306,24 +296,23 @@ module Relisp
     #
     def initialize(*args)
       super do 
-        raise ArgumentError, "Cannot create Window using 'new' method."
+        raise ArgumentError, "Cannot create Window proxy without existing elisp variable."
       end
     end
 
     private
 
     def eval_in_window(code)
-      @slave.elisp_eval <<-EOM
-         (with-selected-window #{@elisp_variable}
-           #{code})
-       EOM
+      @slave.elisp_eval <<EOM
+(with-selected-window #{@elisp_variable}
+  #{code})
+EOM
     end
 
     public
 
-    def split(size=nil, horizontal=false)
-      call_on_self :split_window, size, horizontal
-    end
+    ##
+    elisp_alias "split(size=nil, horizontal=false)", "split_window, size, horizontal"
 
     def split_horizontally(size=nil)
       split(size, true)
@@ -333,58 +322,45 @@ module Relisp
       split(size, false)
     end
 
-    def alive?
-      call_on_self :window_live_p
-    end
+    ##
+    elisp_alias :alive?, :window_live_p
 
-    def delete
-      call_on_self :delete_window
-    end
+    ##
+    elisp_alias :delete, :delete_window
 
-    def delete_others
-      call_on_self :delete_other_windows
-    end
+    ##
+    elisp_alias :delete_others, :delete_other_windows
 
-    def select
-      call_on_self :select_window
-    end
+    ##
+    elisp_alias :select, :select_window
 
-    def buffer
-      call_on_self :window_buffer
-    end
+    ##
+    elisp_alias :buffer, :window_buffer
 
-    def buffer=(new_buffer)
-      call_on_self :set_window_buffer, new_buffer
-    end
+    ##
+    elisp_alias 'buffer=(new_buffer)', 'set_window_buffer, new_buffer'
 
-    def dedicated
-      call_on_self :window_dedicated_p
-    end
+    ##
+    elisp_alias :dedicated, :window_dedicated_p
 
-    def dedicated=(flag)
-      call_on_self :set_window_dedicated_p, flag
-    end
+    ##
+    elisp_alias 'dedicated=(flag)', 'set_window_dedicated_p, flag'
 
-    def point
-      call_on_self :window_point
-    end
+    ##
+    elisp_alias :point, :window_point
 
-    def point=(position)
-      call_on_self :set_window_point, position
-    end
+    ##
+    elisp_alias 'point=(position)', 'set_window_point, position'
 
-    def start
-#      eval_in_window "(window-start)"
-      call_on_self :window_start
-    end
+    ##
+    elisp_alias :start, :window_start
+#   eval_in_window "(window-start)"
 
-    def start=(position)
-      call_on_self :set_window_start, position
-    end
+    ##
+    elisp_alias 'start=(position)', 'set_window_start, position'
 
-    def end 
-      call_on_self :window_end
-    end
+    ##
+    elisp_alias :end , :window_end
 
     def visible?(position)
       @slave.elisp_eval( "(pos-visible-in-window-p #{position.to_elisp} #{@elisp_variable})" )
@@ -402,21 +378,17 @@ module Relisp
       eval_in_window "(recenter #{count.to_elisp})"
     end
 
-    def vscroll
-      call_on_self :window_vscroll
-    end
+    ##
+    elisp_alias :vscroll, :window_vscroll
 
-    def vscroll_in_pixels
-      call_on_self :window_vscroll, true
-    end
+    ##
+    elisp_alias 'vscroll_in_pixels', 'window_vscroll, true'
 
-    def vscroll=(lines)
-      call_on_self :set_window_vscroll, lines
-    end
+    ##
+    elisp_alias 'vscroll=(lines)', 'set_window_vscroll, lines'
 
-    def vscroll_in_pixels=(pixels)
-      call_on_self :set_window_vscroll, pixels, true
-    end
+    ##
+    elisp_alias 'vscroll_in_pixels=(pixels)', 'set_window_vscroll, pixels, true'
 
     def scroll_left(count=nil)
       eval_in_window "(scroll-left #{count.to_elisp})"
@@ -425,26 +397,21 @@ module Relisp
     def scroll_right(count=nil)
       eval_in_window "(scroll-right #{count.to_elisp})"
     end
-    
-    def hscroll
-      call_on_self :window_hscroll
-    end
 
-    def hscroll=(columns)
-      call_on_self :set_window_hscroll, columns
-    end
+    ##
+    elisp_alias :hscroll, :window_hscroll
 
-    def height
-      call_on_self :window_height
-    end
+    ##
+    elisp_alias "hscroll=(columns)", "set_window_hscroll, columns"
 
-    def body_height
-      call_on_self :window_body_height
-    end
+    ##
+    elisp_alias :height, :window_height
 
-    def width
-      call_on_self :window_width
-    end
+    ##
+    elisp_alias :body_height, :window_body_height
+
+    ##
+    elisp_alias :width, :window_width
 
     def edges
       (call_on_self :window_edges).to_list
@@ -472,9 +439,8 @@ module Relisp
       eval_in_window "(shrink-window-horizontally #{horizontal.to_elisp})" unless horizontal == 0
     end
 
-    def frame
-      call_on_self :window_frame
-    end
+    ##
+    elisp_alias :frame, :window_frame
 
     def ==(window2)
       @slave.elisp_eval "(equal #{to_elisp} #{window2.to_elisp})"
@@ -542,59 +508,46 @@ module Relisp
       end
     end
 
-    def delete
-      call_on_self :delete_frame
-    end
+    ##
+    elisp_alias :delete, :delete_frame
 
-    def alive?
-      call_on_self :frame_live_p
-    end
+    ##
+    elisp_alias :alive?, :frame_live_p
 
-    def selected_window
-      call_on_self :frame_selected_window
-    end
+    ##
+    elisp_alias :selected_window, :frame_selected_window
 
-    def selected_window=(window)
-      call_on_self :set_frame_selected_window, window
-    end
-    
-    def focus
-      call_on_self :select_frame_set_input_focus
-    end
+    ##
+    elisp_alias "selected_window=(window)", "set_frame_selected_window, window"
 
-    def select
-      call_on_self :select_frame
-    end
+    ##
+    elisp_alias :focus, :select_frame_set_input_focus
 
-    def visible?
-      call_on_self :frame_visible_p
-    end
+    ##
+    elisp_alias :select, :select_frame
 
-    def show
-      call_on_self :make_frame_visible
-    end
+    ##
+    elisp_alias :visible?, :frame_visible_p
 
-    def hide
-      call_on_self :make_frame_invisible
-    end
+    ##
+    elisp_alias :show, :make_frame_visible
 
-    def iconify
-      call_on_self :inconify_frame
-    end
+    ##
+    elisp_alias :hide, :make_frame_invisible
 
-    def raise
-      call_on_self :raise_frame
-    end
+    ##
+    elisp_alias :iconify, :inconify_frame
 
-    def lower
-      call_on_self :lower_frame
-    end
+    ##
+    elisp_alias :raise, :raise_frame
+
+    ##
+    elisp_alias :lower, :lower_frame
 
     private
     
-    def get_parameter(parameter)
-      call_on_self :frame_parameter, parameter
-    end
+    ##
+    elisp_alias 'get_parameter(parameter)', 'frame_parameter, parameter'
 
     def set_parameter(parameter, new_value)
       alist = Cons.new(Cons.new(parameter, new_value), nil)
@@ -605,332 +558,390 @@ module Relisp
 
     ######### begin frame parameters
 
-    #
-    def display
-      get_parameter :display
+    def self.param_reader name
+      class_eval <<-EOM
+      def #{name}
+          get_parameter :#{name}
+        end
+      EOM
     end
 
-    def display=(new_value)
-      set_parameter :display, new_value
+    def self.param_writer name
+      class_eval <<-EOM
+      def #{name}=(new_value)
+          set_parameter :#{name}, new_value
+        end
+      EOM
     end
 
-    def display_type
-      get_parameter :display_type
-    end
+    # all of this could be a lot slicker, but for the sake of RDoc
+    # it's not
 
-    def display_type=(new_value)
-      set_parameter :display_type, new_value
-    end
+    ##
+    param_reader :display
 
-    def title
-      get_parameter :title
-    end
+    ##
+    # :method: display=
+    # :call-seq: 
+    #   display=(new_value)
+    param_writer :display
 
-    def title=(new_value)
-      set_parameter :title, new_value
-    end
+    ##
+    param_reader :display_type
 
-    def name
-      get_parameter :name, new_value
-    end
+    ##
+    # :method: display_type=
+    # :call-seq: 
+    #   display_type=(new_value)
+    param_writer :display_type
 
-    def name=(new_value)
-      set_parameter :name, new_value
-    end
+    ##
+    param_reader :title
 
-    def left
-      get_parameter :left
-    end
+    ##
+    # :method: title=
+    # :call-seq: 
+    #   title=(new_value)
+    param_writer :title
 
-    def left=(new_value)
-      set_parameter :left, new_value
-    end
+    ##
+    param_reader :name
 
-    def top
-      get_parameter :top
-    end
+    ##
+    # :method: name=
+    # :call-seq: 
+    #   name=(new_value)
+    param_writer :name
+
+    ##
+    param_reader :left
+
+    ##
+    # :method: left=
+    # :call-seq: 
+    #   left=(new_value)
+    param_writer :left
+
+    ##
+    param_reader :top
+
+    ##
+    # :method: top=
+    # :call-seq: 
+    #   top=(new_value)
+    param_writer :top
+
+    ##
+    param_reader :height
+
+    ##
+    # :method: height=
+    # :call-seq: 
+    #   height=(new_value)
+    param_writer :height
+
+    ##
+    param_reader :width
+
+    ##
+    # :method: width=
+    # :call-seq: 
+    #   width=(new_value)
+    param_writer :width
+
+    ##
+    param_reader :fullscreen
+
+    ##
+    # :method: fullscreen=
+    # :call-seq: 
+    #   fullscreen=(new_value)
+    param_writer :fullscreen
+
+    ##
+    param_reader :border_width
+
+    ##
+    # :method: border_width=
+    # :call-seq: 
+    #   border_width=(new_value)
+    param_writer :border_width
+
+    ##
+    param_reader :internal_border_width
+
+    ##
+    # :method: internal_border_width=
+    # :call-seq: 
+    #   internal_border_width=(new_value)
+    param_writer :internal_border_width
+
+    ##
+    param_reader :vertical_scroll_bars
+
+    ##
+    # :method: vertical_scroll_bars=
+    # :call-seq: 
+    #   vertical_scroll_bars=(new_value)
+    param_writer :vertical_scroll_bars
     
-    def top=(new_value)
-      set_parameter :top, new_value
-    end
+    ##
+    param_reader :scroll_bar_width
 
-    def height
-      get_parameter :height
-    end
+    ##
+    # :method: scroll_bar_width=
+    # :call-seq: 
+    #   scroll_bar_width=(new_value)
+    param_writer :scroll_bar_width
+
+    ##
+    param_reader :left_fringe
+
+    ##
+    # :method: left_fringe=
+    # :call-seq: 
+    #   left_fringe=(new_value)
+    param_writer :left_fringe
+
+    ##
+    param_reader :right_fringe
+
+    ##
+    # :method: right_fringe=
+    # :call-seq: 
+    #   right_fringe=(new_value)
+    param_writer :right_fringe
+
+    ##
+    param_reader :menu_bar_lines
+
+    ##
+    # :method: menu_bar_lines=
+    # :call-seq: 
+    #   menu_bar_lines=(new_value)
+    param_writer :menu_bar_lines
     
-    def height=(new_value)
-      set_parameter :height, new_value
-    end
+    ##
+    param_reader :tool_bar_lines
 
-    def width
-      get_parameter :width
-    end
-
-    def width=(new_value)
-      set_parameter :width, new_value
-    end
-
-    def fullscreen
-      get_parameter :fullscreen
-    end
-
-    def fullscreen=(new_value)
-      set_parameter :fullscreen, new_value
-    end
-
-    def border_width
-      get_parameter :border_width
-    end
-
-    def border_width=(new_value)
-      set_parameter :border_width, new_value
-    end
-
-    def internal_border_width
-      get_parameter :internal_border_width
-    end
-
-    def internal_border_width=(new_value)
-      set_parameter :internal_border_width, new_value
-    end
-
-    def vertical_scroll_bars
-      get_parameter :vertical_scroll_bars
-    end
-
-    def vertical_scroll_bars=(new_value)
-      set_parameter :vertical_scroll_bars, new_value
-    end
+    ##
+    # :method: tool_bar_lines=
+    # :call-seq: 
+    #   tool_bar_lines=(new_value)
+    param_writer :tool_bar_lines
     
-    def scroll_bar_width
-      get_parameter :scroll_bar_width
-    end
+    ##
+    param_reader :line_spacing
 
-    def scroll_bar_width=(new_value)
-      set_parameter :scroll_bar_width, new_value
-    end
-
-    def left_fringe
-      get_parameter :left_fringe
-    end
-
-    def left_fringe=(new_value)
-      set_parameter :left_fringe, new_value
-    end
-
-    def right_fringe
-      get_parameter :right_fringe
-    end
-
-    def right_fringe=(new_value)
-      set_parameter :right_fringe, new_value
-    end
-
-    def menu_bar_lines
-      get_parameter :menu_bar_lines
-    end
-
-    def menu_bar_lines=(new_value)
-      set_parameter :menu_bar_lines, new_value
-    end
+    ##
+    # :method: line_spacing=
+    # :call-seq: 
+    #   line_spacing=(new_value)
+    param_writer :line_spacing
     
-    def tool_bar_lines
-      get_parameter :tool_bar_lines
-    end
+    ##
+    param_reader :minibuffer
 
-    def tool_bar_lines=(new_value)
-      set_parameter :tool_bar_lines, new_value
-    end
+    ##
+    # :method: minibuffer=
+    # :call-seq: 
+    #   minibuffer=(new_value)
+    param_writer :minibuffer
     
-    def line_spacing
-      get_parameter :line_spacing
-    end
+    ##
+    param_reader :unsplittable
 
-    def line_spacing=(new_value)
-      set_parameter :line_spacing, new_value
-    end
+    ##
+    # :method: unsplittable=
+    # :call-seq: 
+    #   unsplittable=(new_value)
+    param_writer :unsplittable
+
+    ##
+    param_reader :visibility
+
+    ##
+    # :method: visibility=
+    # :call-seq: 
+    #   visibility=(new_value)
+    param_writer :visibility
     
-    def minibuffer
-      get_parameter :minibuffer
-    end
+    ##
+    param_reader :auto_raise
 
-    def minibuffer=(new_value)
-      set_parameter :minibuffer, new_value
-    end
+    ##
+    # :method: auto_raise=
+    # :call-seq: 
+    #   auto_raise=(new_value)
+    param_writer :auto_raise
+
+    ##
+    param_reader :auto_lower
+
+    ##
+    # :method: auto_lower=
+    # :call-seq: 
+    #   auto_lower=(new_value)
+    param_writer :auto_lower
+
+    ##
+    param_reader :icon_type
+
+    ##
+    # :method: icon_type=
+    # :call-seq: 
+    #   icon_type=(new_value)
+    param_writer :icon_type
     
-    def unsplittable
-      get_parameter :unsplittable
-    end
+    ##
+    param_reader :icon_name
 
-    def unsplittable=(new_value)
-      set_parameter :unsplittable, new_value
-    end
-
-    def visibility
-      get_parameter :visibility
-    end
-
-    def visibility=(new_value)
-      set_parameter :visibility, new_value
-    end
+    ##
+    # :method: icon_name=
+    # :call-seq: 
+    #   icon_name=(new_value)
+    param_writer :icon_name
     
-    def auto_raise
-      get_parameter :auto_raise
-    end
+    ##
+    param_reader :window_id
 
-    def auto_raise=(new_value)
-      set_parameter :auto_raise, new_value
-    end
-
-    def auto_lower
-      get_parameter :auto_lower
-    end
-
-    def auto_lower=(new_value)
-      set_parameter :auto_lower, new_value
-    end
-
-    def icon_type
-      get_parameter :icon_type
-    end
-
-    def icon_type=(new_value)
-      set_parameter :icon_type, new_value
-    end
+    ##
+    # :method: window_id=
+    # :call-seq: 
+    #   window_id=(new_value)
+    param_writer :window_id
     
-    def icon_name
-      get_parameter :icon_name
-    end
+    ##
+    param_reader :outer_window_id
 
-    def icon_name=(new_value)
-      set_parameter :icon_name, new_value
-    end
+    ##
+    # :method: outer_window_id=
+    # :call-seq: 
+    #   outer_window_id=(new_value)
+    param_writer :outer_window_id
     
-    def window_id
-      get_parameter :window_id
-    end
+    ##
+    param_reader :wait_for_wm
 
-    def window_id=(new_value)
-      set_parameter :window_id, new_value
-    end
+    ##
+    # :method: wait_for_wm=
+    # :call-seq: 
+    #   wait_for_wm=(new_value)
+    param_writer :wait_for_wm
     
-    def outer_window_id
-      get_parameter :outer_window_id
-    end
+    ##
+    param_reader :cursor_type
 
-    def outer_window_id=(new_value)
-      set_parameter :outer_window_id, new_value
-    end
+    ##
+    # :method: cursor_type=
+    # :call-seq: 
+    #   cursor_type=(new_value)
+    param_writer :cursor_type
     
-    def wait_for_wm
-      get_parameter :wait_for_wm
-    end
+    ##
+    param_reader :background_mode
 
-    def wait_for_wm=(new_value)
-      set_parameter :wait_for_wm, new_value
-    end
-    
-    def cursor_type
-      get_parameter :cursor_type
-    end
+    ##
+    # :method: background_mode=
+    # :call-seq: 
+    #   background_mode=(new_value)
+    param_writer :background_mode
 
-    def cursor_type=(new_value)
-      set_parameter :cursor_type, new_value
-    end
-    
-    def background_mode
-      get_parameter :background_mode
-    end
+    ##
+    param_reader :tty_color_mode
 
-    def background_mode=(new_value)
-      set_parameter :background_mode, new_value
-    end
+    ##
+    # :method: tty_color_mode=
+    # :call-seq: 
+    #   tty_color_mode=(new_value)
+    param_writer :tty_color_mode
 
-    def tty_color_mode
-      get_parameter :tty_color_mode
-    end
+    ##
+    param_reader :screen_gamma
 
-    def tty_color_mode=(new_value)
-      set_parameter :tty_color_mode, new_value
-    end
+    ##
+    # :method: screen_gamma=
+    # :call-seq: 
+    #   screen_gamma=(new_value)
+    param_writer :screen_gamma
 
-    def screen_gamma
-      get_parameter :screen_gamma
-    end
+    ##
+    param_reader :font
 
-    def screen_gamma=(new_value)
-      set_parameter :screen_gamma, new_value
-    end
+    ##
+    # :method: font=
+    # :call-seq: 
+    #   font=(new_value)
+    param_writer :font
 
-    def font
-      get_parameter :font
-    end
+    ##
+    param_reader :foreground_color
 
-    def font=(new_value)
-      set_parameter :font, new_value
-    end
+    ##
+    # :method: foreground_color=
+    # :call-seq: 
+    #   foreground_color=(new_value)
+    param_writer :foreground_color
 
-    def foreground_color
-      get_parameter :foreground_color
-    end
+    ##
+    param_reader :background_color
 
-    def foreground_color=(new_value)
-      set_parameter :foreground_color, new_value
-    end
+    ##
+    # :method: background_color=
+    # :call-seq: 
+    #   background_color=(new_value)
+    param_writer :background_color
 
-    def background_color
-      get_parameter :background_color
-    end
+    ##
+    param_reader :mouse_color
 
-    def background_color=(new_value)
-      set_parameter :background_color, new_value
-    end
+    ##
+    # :method: mouse_color=
+    # :call-seq: 
+    #   mouse_color=(new_value)
+    param_writer :mouse_color
 
-    def mouse_color
-      get_parameter :mouse_color
-    end
+    ##
+    param_reader :cursor_color
 
-    def mouse_color=(new_value)
-      set_parameter :mouse_color, new_value
-    end
+    ##
+    # :method: cursor_color=
+    # :call-seq: 
+    #   cursor_color=(new_value)
+    param_writer :cursor_color
 
-    def cursor_color
-      get_parameter :cursor_color
-    end
+    ##
+    param_reader :border_color
 
-    def cursor_color=(new_value)
-      set_parameter :cursor_color, new_value
-    end
+    ##
+    # :method: border_color=
+    # :call-seq: 
+    #   border_color=(new_value)
+    param_writer :border_color
 
-    def border_color
-      get_parameter :border_color
-    end
+    ##
+    param_reader :scroll_bar_foreground
 
-    def border_color=(new_value)
-      set_parameter :border_color, new_value
-    end
+    ##
+    # :method: scroll_bar_foreground=
+    # :call-seq: 
+    #   scroll_bar_foreground=(new_value)
+    param_writer :scroll_bar_foreground
 
-    def scroll_bar_foreground
-      get_parameter :scroll_bar_foreground
-    end
+    ##
+    param_reader :scroll_bar_background
 
-    def scroll_bar_foreground=(new_value)
-      set_parameter :scroll_bar_foreground, new_value
-    end
-
-    def scroll_bar_background
-      get_parameter :scroll_bar_background
-    end
-
-    def scroll_bar_background=(new_value)
-      set_parameter :scroll_bar_background, new_value
-    end
+    ##
+    # :method: scroll_bar_background=
+    # :call-seq: 
+    #   scroll_bar_background=(new_value)
+    param_writer :scroll_bar_background
 
     ######### end frame parameters
     
   end
   
-  # A  proxy to an Emacs window-configuration
+  # A proxy to an Emacs window-configuration
   #
   class WindowConfiguration < Proxy
 
@@ -942,12 +953,12 @@ module Relisp
     #
     def initialize(*args)
       super do 
-        raise ArgumentError, "Cannot create WindowConfiguration using 'new' method."
+        raise ArgumentError, "Cannot create WindowConfiguration proxy without existing elisp variable."
       end
     end
   end
 
-  # A  proxy to an Emacs process
+  # A proxy to an Emacs process
   #
   class Process < Proxy
 
@@ -959,24 +970,21 @@ module Relisp
     #
     def initialize(*args)
       super do 
-        raise ArgumentError, "Cannot create Process using 'new' method."
+        raise ArgumentError, "Cannot create Process proxy without existing elisp variable."
       end
     end
-    
-    def name
-      call_on_self :process_name
-    end
 
-    def status
-      call_on_self :process_status
-    end
+    ##
+    elisp_alias :name, :process_name
 
-    def exit_status
-      call_on_self :process_exit_status
-    end
+    ##
+    elisp_alias :status, :process_status
+
+    ##
+    elisp_alias :exit_status, :process_exit_status
   end
   
-  # A  proxy to an Emacs Overlay
+  # A proxy to an Emacs Overlay
   #
   class Overlay < Proxy
     
@@ -996,33 +1004,26 @@ module Relisp
       end
     end
 
-    def start
-      call_on_self :overlay_start
-    end
+    ##
+    elisp_alias :start, :overlay_start
 
-    def end
-      call_on_self :overlay_end
-    end
+    ##
+    elisp_alias :end, :overlay_end
 
-    def buffer
-      call_on_self :overlay_buffer
-    end
+    ##
+    elisp_alias :buffer, :overlay_buffer
 
-    def delete
-      call_on_self :delete_overlay
-    end
+    ##
+    elisp_alias :delete, :delete_overlay
 
-    def move(new_start, new_end, new_buffer = nil)
-      call_on_self :move_overlay, new_start, new_end, new_buffer
-    end
+    ##
+    elisp_alias "move(new_start, new_end, new_buffer = nil)", "move_overlay, new_start, new_end, new_buffer"
 
-    def start=(new_start)
-      call_on_self :move_overlay, new_start, self.end
-    end
+    ##
+    elisp_alias "start=(new_start)", "move_overlay, new_start, self.end"
 
-    def end=(new_end)
-      call_on_self :move_overlay, self.start, new_end
-    end
+    ##
+    elisp_alias "end=(new_end)", "move_overlay, self.start, new_end"
 
     private
     
@@ -1036,141 +1037,174 @@ module Relisp
 
     public
     
-    def priority
-      get_property :priority
+    def self.prop_reader name
+      class_eval <<-EOM
+      def #{name}
+          get_property :#{name}
+        end
+      EOM
     end
 
-    def priority=(new_value)
-      set_property :priority, new_value
+    def self.prop_writer name
+      class_eval <<-EOM
+      def #{name}=(new_value)
+          set_property :#{name}, new_value
+        end
+      EOM
     end
 
-    def window
-      get_property :window
-    end
-
-    def window=(new_value)
-      set_property :window, new_value
-    end
-
-    def category
-      get_property :category
-    end
-
-    def category=(new_value)
-      set_property :category, new_value
-    end
-   
-    def face
-      get_property :face
-    end
-
-    def face=(new_value)
-      set_property :face, new_value
-    end
-
-    def mouse_face
-      get_property :mouse_face
-    end
+    ##
+    prop_reader :priority
     
-    def mouse_face=(new_value)
-      set_property :mouse_face, new_value
-    end
+    ##
+    # :method: priority=
+    # :call-seq:
+    #   priority=(new_value)
+    prop_writer :priority
 
-    def display
-      get_property :display
-    end
+    ##
+    prop_reader :window
+    
+    ##
+    # :method: window=
+    # :call-seq:
+    #   window=(new_value)
+    prop_writer :window
 
-    def display=(new_value)
-      set_property :display, new_value
-    end
+    ##
+    prop_reader :category
+    
+    ##
+    # :method: category=
+    # :call-seq:
+    #   category=(new_value)
+    prop_writer :category
+   
+    ##
+    prop_reader :face
+    
+    ##
+    # :method: face=
+    # :call-seq:
+    #   face=(new_value)
+    prop_writer :face
 
-    def help_echo
-      get_property :help_echo
-    end
+    ##
+    prop_reader :mouse_face
+    
+    ##
+    # :method: mouse_face=
+    # :call-seq:
+    #   mouse_face=(new_value)
+    prop_writer :mouse_face
 
-    def help_echo=(new_value)
-      set_property :help_echo, new_value
-    end
+    ##
+    prop_reader :display
+    
+    ##
+    # :method: display=
+    # :call-seq:
+    #   display=(new_value)
+    prop_writer :display
 
-    def modification_hooks
-      get_property :help_echo
-    end
+    ##
+    prop_reader :help_echo
+    
+    ##
+    # :method: help_echo=
+    # :call-seq:
+    #   help_echo=(new_value)
+    prop_writer :help_echo
 
-    def modification_hooks=(new_value)
-      set_property :help_echo, new_value
-    end
+    ##
+    prop_reader :modification_hooks
+    
+    ##
+    # :method: modification_hooks=
+    # :call-seq:
+    #   modification_hooks=(new_value)
+    prop_writer :modification_hooks
 
-    def insert_in_front_hooks
-      get_property :insert_in_front_hooks
-    end
+    ##
+    prop_reader :insert_in_front_hooks
+    
+    ##
+    # :method: insert_in_front_hooks=
+    # :call-seq:
+    #   insert_in_front_hooks=(new_value)
+    prop_writer :insert_in_front_hooks
 
-    def insert_in_front_hooks=(new_value)
-      set_property :insert_in_front_hooks, new_value
-    end
+    ##
+    prop_reader :insert_behind_hooks
+    
+    ##
+    # :method: insert_behind_hooks=
+    # :call-seq:
+    #   insert_behind_hooks=(new_value)
+    prop_writer :insert_behind_hooks
 
-    def insert_behind_hooks
-      get_property :insert_behind_hooks
-    end
+    ##
+    prop_reader :invisible
+    
+    ##
+    # :method: invisible=
+    # :call-seq:
+    #   invisible=(new_value)
+    prop_writer :invisible
 
-    def insert_behind_hooks=(new_value)
-      set_property :insert_behind_hooks, new_value
-    end
+    ##
+    prop_reader :intangible
+    
+    ##
+    # :method: intangible=
+    # :call-seq:
+    #   intangible=(new_value)
+    prop_writer :intangible
 
-    def invisible
-      get_property :invisible
-    end
+    ##
+    prop_reader :before_string
+    
+    ##
+    # :method: before_string=
+    # :call-seq:
+    #   before_string=(new_value)
+    prop_writer :before_string
 
-    def invisible=(new_value)
-      set_property :invisible, new_value
-    end
+    ##
+    prop_reader :after_string
+    
+    ##
+    # :method: after_string=
+    # :call-seq:
+    #   after_string=(new_value)
+    prop_writer :after_string
 
-    def intangible
-      get_property :intangible
-    end
+    ##
+    prop_reader :evaporate
+    
+    ##
+    # :method: evaporate=
+    # :call-seq:
+    #   evaporate=(new_value)
+    prop_writer :evaporate
 
-    def intangible=(new_value)
-      set_property :intangible, new_value
-    end
+    ##
+    prop_reader :local_map
+    
+    ##
+    # :method: local_map=
+    # :call-seq:
+    #   local_map=(new_value)
+    prop_writer :local_map
 
-    def before_string
-      get_property :before_string
-    end
-
-    def before_string=(new_value)
-      set_property :before_string, new_value
-    end
-
-    def after_string
-      get_property :after_string
-    end
-
-    def after_string=(new_value)
-      set_property :after_string, new_value
-    end
-
-    def evaporate
-      get_property :evaporate
-    end
-
-    def evaporate=(new_value)
-      set_property :evaporate, new_value
-    end
-
-    def local_map
-      get_property :local_map
-    end
-
-    def local_map=(new_value)
-      set_property :local_map, new_value
-    end
-
-    def keymap
-      get_property :keymap
-    end
-
-    def keymap=(new_value)
-      set_property :keymap, new_value
-    end
+    ##
+    prop_reader :keymap
+    
+    ##
+    # :method: keymap=
+    # :call-seq:
+    #   keymap=(new_value)
+    prop_writer :keymap
 
   end
   

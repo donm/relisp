@@ -16,6 +16,3 @@
 ;; should move text down and return t
 (ruby-eval "window_scroll_down")
 
-;; create some windows and move them horizontally and vertically
-(ruby-eval "window_shrink")
-

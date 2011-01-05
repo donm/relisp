@@ -1,5 +1,5 @@
 #--
-# Copyright (C) 2009 <don@ohspite.net>
+# Copyright (C) 2009, 2010 Don March
 #
 # This file is part of Relisp.
 #
@@ -96,27 +96,26 @@ module Relisp
     #
     # For example:
     #
-    # emacs = Relisp::ElispSlave.new
-    # puts emacs.concat "two", "words"
-    # emacs.a= 5
-    # puts emacs.a
+    #   emacs = Relisp::ElispSlave.new
+    #   puts emacs.concat "two", "words"
+    #   emacs.a= 5
+    #   puts emacs.a
     #
     # This automatically allows access to a large portion of elisp
     # in a rubyish way.  
     #
     def method_missing(function, *args) # :doc:
-      function = function.to_s.gsub('_', '-')
-      
-      if elisp_eval "(functionp '#{function})"
-        elisp_eval "(#{function} #{args.map{|a| a.to_elisp}.join(' ')})"
-      elsif elisp_eval "(boundp '#{function})"
-        elisp_eval "#{function}"
-      elsif function[function.size-1..function.size-1] == "="
-        elisp_eval "(setq #{function[0..function.size-2]} #{args[0].to_elisp})"
-      else
-        raise NameError, "#{function} is undefined in Ruby and is not an Elisp function"
-      end
+      lisp_name = function.to_s.gsub('_', '-')
 
+      if elisp_eval "(functionp '#{lisp_name})"
+        elisp_eval "(#{lisp_name} #{args.map{|a| a.to_elisp}.join(' ')})"
+      elsif elisp_eval("(boundp '#{lisp_name})") && args.empty? # if there are args, it was meant to be a function
+        elisp_eval "#{lisp_name}"
+      elsif lisp_name[lisp_name.size-1..lisp_name.size-1] == "="
+        elisp_eval "(setq #{lisp_name[0..lisp_name.size-2]} #{args[0].to_elisp})"
+      else
+        raise NameError, "#{function} is undefined variable/method/function in Ruby and Elisp"
+      end
 #      elisp_eval("(if (functionp '#{function}) (#{function} #{args.map{|a| a.to_elisp}.join(' ')}) #{function})")
     end
     
