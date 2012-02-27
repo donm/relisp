@@ -20,8 +20,11 @@
 #
 #
 
+require 'facets/memoizable'
+
 module Relisp
   class Slave
+    include Memoizable
 
     # Save point, mark, and current buffer; execute a block of code;
     # restore those things.
@@ -81,6 +84,12 @@ module Relisp
     # TODO:    save_selected_window
     # TODO:    with_selected_window
 
+    def elisp_function?(name)
+      elisp_eval "(functionp '#{name})"
+    end
+
+    memoize :elisp_function?
+
     private
 
     # Forward any missing method to elisp.  
@@ -107,7 +116,7 @@ module Relisp
     def method_missing(function, *args) # :doc:
       lisp_name = function.to_s.gsub('_', '-')
 
-      if elisp_eval "(functionp '#{lisp_name})"
+      if elisp_function? lisp_name
         elisp_eval "(#{lisp_name} #{args.map{|a| a.to_elisp}.join(' ')})"
       elsif elisp_eval("(boundp '#{lisp_name})") && args.empty? # if there are args, it was meant to be a function
         elisp_eval "#{lisp_name}"

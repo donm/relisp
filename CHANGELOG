@@ -1,3 +1,13 @@
+== 1.1.2 / 2011-01-13
+
+* 1 minor enhancement
+  * calls to `functionp' in Slave#method_missing? are memoized
+
+== 1.1.1 / 2011-01-10
+
+* 1 minor enhancement
+  * Ruby unicode escape sequences fixed to work with emacs.
+
 == 1.1.0 / 2011-01-05
 
 * 2 major enhancements

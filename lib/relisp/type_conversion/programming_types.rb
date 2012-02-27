@@ -270,7 +270,8 @@ module Relisp
     end
 
     def to_elisp
-      self.dump
+      # convert "\u{0000}" to "\u0000"
+      self.dump.gsub(/\\u\{([0-9a-e]+)\}/) { |m| sprintf("\\u%04x", $1.to_i(16)) }
     end
   end
 

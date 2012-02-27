@@ -271,10 +271,11 @@ module TestRelisp
     end
 
     def test_to_elisp
-      str = "a string\nwith two lines"
-      assert @emacs.elisp_eval( "(equal \"a string\\nwith two lines\" #{str.to_elisp}  )" )
+      str = "a string\nwith unicode: \u{20b6}"
+      assert @emacs.elisp_eval( "(equal \"a string\\nwith unicode: \\u20b6\" #{str.to_elisp}  )" ), "This test will fail in ruby 1.8, but that's okay"
       @emacs.provide(:str, binding)
-      assert @emacs.elisp_eval( "(equal \"a string\\nwith two lines\" (ruby-eval \"str\")  )" )
+      assert @emacs.elisp_eval( "(equal \"a string\\nwith unicode: \\u20b6\" (ruby-eval \"str\")  )" )
+      assert_equal str, @emacs.elisp_eval( "(ruby-eval \"str\")" )
     end
   end
 

@@ -107,14 +107,14 @@ whitespace on that side of the string."
   "Insert TEXT at the end of the log buffer, when emacs is mater."
   (or text (setq text ""))
   (when (and relisp-emacs-master-p
-	     (if (and (boundp 'relisp-endofmessage-regexp)
-		      relisp-endofmessage-regexp)
-		 (and (not (string-match relisp-endofmessage-regexp (relisp-strip text)))
-		      (not (string-match relisp-begin-slave-code (relisp-strip text))))
-	       t)
+  	     (if (and (boundp 'relisp-endofmessage-regexp)
+  		      relisp-endofmessage-regexp)
+  		 (and (not (string-match relisp-endofmessage-regexp (relisp-strip text)))
+  		      (not (string-match relisp-begin-slave-code (relisp-strip text))))
+  	       t)
       (with-current-buffer (get-buffer-create relisp-buffer-name)
-	(goto-char (point-max))
-	(insert text "\n")))))
+  	(goto-char (point-max))
+  	(insert text "\n")))))
 
 ;; relisp-form-command and -question convert the argument to a string,
 ;; if necessary, to catch end cases like `nil', but -form-answer and
