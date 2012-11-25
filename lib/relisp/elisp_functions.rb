@@ -20,11 +20,12 @@
 #
 #
 
-require 'facets/memoizable'
+# Using this introduced a very hard to trace bug.  
+# require 'facets/memoizable'
 
 module Relisp
   class Slave
-    include Memoizable
+    # include Memoizable
 
     # Save point, mark, and current buffer; execute a block of code;
     # restore those things.
@@ -85,10 +86,11 @@ module Relisp
     # TODO:    with_selected_window
 
     def elisp_function?(name)
-      elisp_eval "(functionp '#{name})"
+      @elisp_function_eh[name] ||= 
+        elisp_eval "(functionp '#{name})"
     end
 
-    memoize :elisp_function?
+#    memoize :elisp_function?
 
     private
 

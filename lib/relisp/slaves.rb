@@ -72,6 +72,9 @@ module Relisp
       @local_binding = binding
       @current_elisp_variable_num = '0'
       @debug = nil
+
+      @elisp_function_eh ||= Hash.new # for memoization
+
       Relisp.default_slave = self
     end
 

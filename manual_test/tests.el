@@ -1,7 +1,5 @@
 (relisp-start-slave "tests.rb")
-
-;; bury current buffer
-(ruby-eval "buffer_bury")
+;; Watch the *Relisp* buffer for all of this stuff, if you're interested
 
 ;; split this window vertically and set bottow window to
 ;; 'other-buffer'
@@ -15,4 +13,7 @@
 
 ;; should move text down and return t
 (ruby-eval "window_scroll_down")
+
+;; bury current buffer
+(ruby-eval "buffer_bury")
 
